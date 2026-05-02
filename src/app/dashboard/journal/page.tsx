@@ -3,36 +3,23 @@ import { JournalClient } from './journal-client'
 
 export const dynamic = 'force-dynamic'
 
+const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'SAR'
+
 export default async function JournalPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { data: membership } = await supabase
-    .from('memberships')
-    .select('company_id, companies(currency)')
-    .eq('user_id', user!.id)
-    .single()
-
-  const companyId = membership?.company_id as string
-  const currency = (membership?.companies as any)?.currency || 'USD'
 
   const { data: entries } = await supabase
     .from('journal_entries')
-    .select(`
-      *,
-      journal_entry_lines (
-        *,
-        accounts (code, name, name_ar, type)
-      )
-    `)
-    .eq('company_id', companyId)
+    .select(`*, journal_entry_lines (*, accounts (code, name, name_ar, type))`)
+    .eq('company_id', COMPANY_ID)
     .order('date', { ascending: false })
     .limit(50)
 
   const { data: accounts } = await supabase
     .from('accounts')
     .select('*')
-    .eq('company_id', companyId)
+    .eq('company_id', COMPANY_ID)
     .eq('is_active', true)
     .order('code')
 
@@ -40,8 +27,8 @@ export default async function JournalPage() {
     <JournalClient
       entries={entries || []}
       accounts={accounts || []}
-      companyId={companyId}
-      currency={currency}
+      companyId={COMPANY_ID}
+      currency={CURRENCY}
     />
   )
 }

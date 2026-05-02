@@ -3,22 +3,15 @@ import { TransactionsClient } from './transactions-client'
 
 export const dynamic = 'force-dynamic'
 
+const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'SAR'
+
 export default async function TransactionsPage({
   searchParams,
 }: {
   searchParams: { type?: string; page?: string; search?: string; category?: string }
 }) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { data: membership } = await supabase
-    .from('memberships')
-    .select('company_id, companies(currency)')
-    .eq('user_id', user!.id)
-    .single()
-
-  const companyId = membership?.company_id as string
-  const currency = (membership?.companies as any)?.currency || 'USD'
 
   const page = parseInt(searchParams.page || '1')
   const limit = 20
@@ -27,7 +20,7 @@ export default async function TransactionsPage({
   let query = supabase
     .from('transactions')
     .select('*, categories(name, name_ar, color, icon), parties(name)', { count: 'exact' })
-    .eq('company_id', companyId)
+    .eq('company_id', COMPANY_ID)
     .order('transaction_date', { ascending: false })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
@@ -49,15 +42,15 @@ export default async function TransactionsPage({
   const { data: categories } = await supabase
     .from('categories')
     .select('*')
-    .eq('company_id', companyId)
+    .eq('company_id', COMPANY_ID)
     .eq('is_active', true)
 
   return (
     <TransactionsClient
       transactions={transactions || []}
       categories={categories || []}
-      currency={currency}
-      companyId={companyId}
+      currency={CURRENCY}
+      companyId={COMPANY_ID}
       totalCount={count || 0}
       currentPage={page}
       limit={limit}

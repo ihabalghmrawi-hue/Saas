@@ -1,24 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { TransactionForm } from '@/components/forms/transaction-form'
-import { redirect } from 'next/navigation'
+
+const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'SAR'
 
 export default async function NewTransactionPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { data: membership } = await supabase
-    .from('memberships')
-    .select('company_id, companies(currency)')
-    .eq('user_id', user!.id)
-    .single()
-
-  const companyId = membership?.company_id as string
-  const currency = (membership?.companies as any)?.currency || 'USD'
 
   const [{ data: categories }, { data: parties }, { data: wallets }] = await Promise.all([
-    supabase.from('categories').select('*').eq('company_id', companyId).eq('is_active', true),
-    supabase.from('parties').select('*').eq('company_id', companyId).eq('is_active', true),
-    supabase.from('wallets').select('*').eq('company_id', companyId).eq('is_active', true),
+    supabase.from('categories').select('*').eq('company_id', COMPANY_ID).eq('is_active', true),
+    supabase.from('parties').select('*').eq('company_id', COMPANY_ID).eq('is_active', true),
+    supabase.from('wallets').select('*').eq('company_id', COMPANY_ID).eq('is_active', true),
   ])
 
   return (
@@ -28,8 +20,8 @@ export default async function NewTransactionPage() {
         <p className="text-sm text-muted-foreground">تسجيل قيد دفع أو قبض أو تسويات</p>
       </div>
       <TransactionForm
-        companyId={companyId}
-        currency={currency}
+        companyId={COMPANY_ID}
+        currency={CURRENCY}
         categories={categories || []}
         parties={parties || []}
         wallets={wallets || []}

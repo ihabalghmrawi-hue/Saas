@@ -11,12 +11,9 @@ import {
   Settings,
   ChevronLeft,
   Building2,
-  LogOut,
   Users,
   Tag
 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { cn, getInitials } from '@/lib/utils'
 import type { Company } from '@/types/database'
 
@@ -65,13 +62,6 @@ const navItems = [
 
 export function Sidebar({ company, user }: SidebarProps) {
   const pathname = usePathname()
-  const router = useRouter()
-
-  const handleLogout = async () => {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    router.push('/auth/login')
-  }
 
   return (
     <aside className="w-64 bg-card border-l flex flex-col h-screen shrink-0 shadow-sm">
@@ -135,23 +125,13 @@ export function Sidebar({ company, user }: SidebarProps) {
 
       {/* User Profile */}
       <div className="p-3 border-t">
-        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent cursor-pointer group">
+        <div className="flex items-center gap-3 p-2 rounded-lg">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-            {getInitials(user.email?.split('@')[0] || 'U')}
+            م
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">
-              {user.user_metadata?.full_name || user.email?.split('@')[0]}
-            </p>
-            <p className="text-xs text-muted-foreground truncate" dir="ltr">{user.email}</p>
+            <p className="text-sm font-medium text-foreground truncate">المستخدم</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 hover:text-red-600 rounded transition-all"
-            title="تسجيل الخروج"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </aside>

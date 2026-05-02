@@ -4,28 +4,20 @@ import { getLastNMonths } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
+const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'SAR'
+const COMPANY_NAME = process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي'
+
 export default async function ReportsPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: membership } = await supabase
-    .from('memberships')
-    .select('company_id, companies(currency, name, name_ar)')
-    .eq('user_id', user!.id)
-    .single()
-
-  const companyId = membership?.company_id as string
-  const currency = (membership?.companies as any)?.currency || 'USD'
-  const companyName = (membership?.companies as any)?.name_ar || (membership?.companies as any)?.name
-
-  // Get 6 months data
   const months = getLastNMonths(6)
   const allMonthlyData = await Promise.all(
     months.map(async ({ start, end, label }) => {
       const { data } = await supabase
         .from('transactions')
         .select('type, amount, category_id, categories(name, name_ar, color)')
-        .eq('company_id', companyId)
+        .eq('company_id', COMPANY_ID)
         .eq('status', 'completed')
         .gte('transaction_date', start)
         .lte('transaction_date', end)
@@ -36,17 +28,15 @@ export default async function ReportsPage() {
     })
   )
 
-  // Category breakdown (current month)
   const currentMonth = months[months.length - 1]
   const { data: currentTxns } = await supabase
     .from('transactions')
     .select('type, amount, categories(id, name, name_ar, color, icon)')
-    .eq('company_id', companyId)
+    .eq('company_id', COMPANY_ID)
     .eq('status', 'completed')
     .gte('transaction_date', currentMonth.start)
     .lte('transaction_date', currentMonth.end)
 
-  // Build category breakdown
   const expenseByCategory: Record<string, any> = {}
   const incomeByCategory: Record<string, any> = {}
 
@@ -88,8 +78,8 @@ export default async function ReportsPage() {
       expenseBreakdown={expenseBreakdown}
       incomeBreakdown={incomeBreakdown}
       totals={totals}
-      currency={currency}
-      companyName={companyName}
+      currency={CURRENCY}
+      companyName={COMPANY_NAME}
       currentMonth={currentMonth.label}
     />
   )

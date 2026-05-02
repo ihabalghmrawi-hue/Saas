@@ -25,24 +25,7 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { pathname } = request.nextUrl
-
-  // Public routes
-  const publicRoutes = ['/auth/login', '/auth/signup', '/auth/callback']
-  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
-
-  if (!user && !isPublicRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/login'
-    url.searchParams.set('redirectTo', pathname)
-    return NextResponse.redirect(url)
-  }
-
-  if (user && isPublicRoute) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  await supabase.auth.getUser()
 
   return supabaseResponse
 }

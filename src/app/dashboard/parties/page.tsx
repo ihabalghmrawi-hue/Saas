@@ -3,25 +3,18 @@ import { PartiesClient } from './parties-client'
 
 export const dynamic = 'force-dynamic'
 
+const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'SAR'
+
 export default async function PartiesPage() {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-
-  const { data: membership } = await supabase
-    .from('memberships')
-    .select('company_id, companies(currency)')
-    .eq('user_id', user!.id)
-    .single()
-
-  const companyId = membership?.company_id as string
-  const currency = (membership?.companies as any)?.currency || 'USD'
 
   const { data: parties } = await supabase
     .from('parties')
     .select('*')
-    .eq('company_id', companyId)
+    .eq('company_id', COMPANY_ID)
     .eq('is_active', true)
     .order('name')
 
-  return <PartiesClient parties={parties || []} companyId={companyId} currency={currency} />
+  return <PartiesClient parties={parties || []} companyId={COMPANY_ID} currency={CURRENCY} />
 }

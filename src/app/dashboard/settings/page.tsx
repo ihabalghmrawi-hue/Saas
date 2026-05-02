@@ -1,25 +1,33 @@
-import { createClient } from '@/lib/supabase/server'
 import { SettingsClient } from './settings-client'
 
 export const dynamic = 'force-dynamic'
 
-export default async function SettingsPage() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+const defaultCompany = {
+  id: process.env.NEXT_PUBLIC_COMPANY_ID || 'default',
+  name: process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي',
+  name_ar: process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي',
+  slug: 'default',
+  currency: process.env.NEXT_PUBLIC_CURRENCY || 'SAR',
+  language: 'ar',
+  timezone: 'Asia/Riyadh',
+  fiscal_year_start: 1,
+  is_active: true,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  logo_url: null,
+  address: null,
+  phone: null,
+  email: null,
+  tax_number: null,
+  settings: null,
+}
 
-  const { data: membership } = await supabase
-    .from('memberships')
-    .select('*, companies(*)')
-    .eq('user_id', user!.id)
-    .single()
-
-  const company = membership?.companies as any
-
+export default function SettingsPage() {
   return (
     <SettingsClient
-      company={company}
-      user={user!}
-      role={membership?.role || 'viewer'}
+      company={defaultCompany as any}
+      user={null as any}
+      role="owner"
     />
   )
 }
