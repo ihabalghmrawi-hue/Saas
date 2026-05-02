@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirectTo') || '/dashboard'
@@ -121,12 +121,19 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* Demo credentials hint */}
       <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
         <p className="text-xs text-blue-600 dark:text-blue-400 text-center">
           يمكنك إنشاء حساب جديد أو استخدام بيانات تجريبية
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="bg-card rounded-2xl border shadow-xl p-8 animate-pulse h-96" />}>
+      <LoginForm />
+    </Suspense>
   )
 }
