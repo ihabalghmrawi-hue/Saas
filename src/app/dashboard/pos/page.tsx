@@ -24,7 +24,7 @@ export default async function POSPage() {
       .order('name'),
     supabase
       .from('customers')
-      .select('id, name, name_ar, phone, balance, credit_limit')
+      .select('*')
       .eq('company_id', COMPANY_ID)
       .eq('is_active', true)
       .order('name'),
