@@ -82,38 +82,28 @@ export async function POST(req: NextRequest) {
     // Update inventory for each item
     if (warehouse_id) {
       for (const item of items) {
-        await supabase.rpc('update_inventory_quantity', {
-          p_product_id: item.product_id,
-          p_warehouse_id: warehouse_id,
-          p_company_id: company_id,
-          p_delta: -item.quantity,
-        }).catch(() => {
-          // Fallback: direct update
-          supabase.from('inventory')
-            .upsert({
-              product_id: item.product_id,
-              warehouse_id,
-              company_id,
-              quantity: 0,
-              variant_id: null,
-            }, { onConflict: 'product_id,warehouse_id,variant_id' })
-        })
+        const { data: existing } = await supabase
+          .from('inventory')
+          .select('id, quantity')
+          .eq('product_id', item.product_id)
+          .eq('warehouse_id', warehouse_id)
+          .is('variant_id', null)
+          .single()
+
+        if (existing) {
+          await supabase.from('inventory')
+            .update({ quantity: existing.quantity - item.quantity, updated_at: new Date().toISOString() })
+            .eq('id', existing.id)
+        }
       }
     }
 
     // Update customer balance if credit sale
     if (customer_id && due_amount > 0) {
-      await supabase.rpc('increment', {
-        table_name: 'customers',
-        row_id: customer_id,
-        x: due_amount,
-        field_name: 'balance',
-      }).catch(async () => {
-        const { data: cust } = await supabase.from('customers').select('balance').eq('id', customer_id).single()
-        if (cust) {
-          await supabase.from('customers').update({ balance: (cust.balance || 0) + due_amount }).eq('id', customer_id)
-        }
-      })
+      const { data: cust } = await supabase.from('customers').select('balance').eq('id', customer_id).single()
+      if (cust) {
+        await supabase.from('customers').update({ balance: (cust.balance || 0) + due_amount }).eq('id', customer_id)
+      }
     }
 
     return NextResponse.json({ success: true, invoice_number, sale_id: sale.id })
