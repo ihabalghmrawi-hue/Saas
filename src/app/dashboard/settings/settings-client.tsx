@@ -274,9 +274,11 @@ export function SettingsClient({ company, user, role }: SettingsClientProps) {
                   <Shield className="w-5 h-5 text-blue-600 shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-foreground">حسابك محمي</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      بريدك: <span dir="ltr">{user.email}</span>
-                    </p>
+                    {user?.email && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        بريدك: <span dir="ltr">{user.email}</span>
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -287,6 +289,7 @@ export function SettingsClient({ company, user, role }: SettingsClientProps) {
                   <p className="text-xs text-muted-foreground mt-0.5">سيتم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك</p>
                   <button
                     onClick={async () => {
+                      if (!user?.email) return
                       const supabase = createClient()
                       await supabase.auth.resetPasswordForEmail(user.email)
                       alert('تم إرسال رابط إعادة التعيين إلى بريدك الإلكتروني')
