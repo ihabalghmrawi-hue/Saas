@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\api\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "Bash(dir /s /b src\\\\app\\\\api)",
+      "PowerShell(Get-ChildItem -Path \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\api\" -Directory | ForEach-Object { Get-ChildItem -Path $_.FullName -Recurse })",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push *)"
+    ]
+  }
+}
