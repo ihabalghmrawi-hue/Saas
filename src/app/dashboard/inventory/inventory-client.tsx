@@ -10,10 +10,10 @@ import { cn } from '@/lib/utils'
 import type { Product, ProductCategory, Unit, Warehouse } from '@/types/erp'
 
 interface InventoryClientProps {
-  products: Product[]
-  categories: ProductCategory[]
-  units: Unit[]
-  warehouses: Warehouse[]
+  products: any[]
+  categories: any[]
+  units: any[]
+  warehouses: any[]
   companyId: string
   currency: string
 }
