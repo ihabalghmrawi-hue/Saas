@@ -6,7 +6,7 @@ import {
   LayoutDashboard, ShoppingCart, Package, ShoppingBag, Users, Truck,
   BarChart3, Settings, BookOpen, Wallet, Receipt, DollarSign, Tag,
   Warehouse, TrendingUp, RotateCcw, Clock, Shield, UserCog, LogOut,
-  Layers, Shirt, Calendar,
+  Layers, Shirt, Calendar, CalendarDays,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import type { Features } from '@/lib/features'
@@ -99,7 +99,9 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
       items: [
         { label: 'لوحة التأجير', href: '/dashboard/rentals', icon: LayoutDashboard, show: features.hasRental },
         { label: 'الفساتين', href: '/dashboard/rentals/dresses', icon: Shirt, show: features.hasRental },
-        { label: 'الحجوزات', href: '/dashboard/rentals/bookings', icon: Calendar, show: features.hasRental },
+        { label: 'حجز سريع', href: '/dashboard/rentals/bookings/new', icon: Calendar, show: features.hasRental },
+        { label: 'الحجوزات', href: '/dashboard/rentals/bookings', icon: CalendarDays, show: features.hasRental },
+        { label: 'تقويم التأجير', href: '/dashboard/rentals/calendar', icon: CalendarDays, show: features.hasRental },
         { label: 'الإرجاعات', href: '/dashboard/rentals/returns', icon: RotateCcw, show: features.hasRental },
       ],
     },
