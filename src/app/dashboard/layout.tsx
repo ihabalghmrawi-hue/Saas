@@ -24,7 +24,7 @@ const defaultCompany = {
   settings: null,
 }
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const h = headers()
   const staffName = h.get('x-staff-name') || 'المدير'
   const staffRole = h.get('x-staff-role') || 'admin'
