@@ -9,7 +9,8 @@ import {
   Receipt, Zap, Calendar, Shirt, RotateCcw,
   CheckCircle, Plus, ChevronRight,
 } from 'lucide-react'
-import { InsightsWidget } from '@/components/insights-widget'
+import { InsightsWidget }       from '@/components/insights-widget'
+import { DashboardOnboarding }  from '@/components/onboarding/dashboard-onboarding'
 
 export const dynamic = 'force-dynamic'
 const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
@@ -33,11 +34,15 @@ export default async function DashboardPage() {
       { data: orders },
       { data: lateOrders },
       { data: todayBookings },
+      { data: pricingRules },
+      { data: branding },
     ] = await Promise.all([
       supabase.from('dresses').select('status').eq('company_id', COMPANY_ID).neq('status', 'retired'),
       supabase.from('rental_orders').select('total_price, amount_paid, status').eq('company_id', COMPANY_ID).neq('status', 'cancelled'),
       supabase.from('rental_orders').select('id, customer_name, end_date, dresses(name)').eq('company_id', COMPANY_ID).eq('status', 'active').lt('end_date', today).order('end_date').limit(5),
       supabase.from('rental_orders').select('id, customer_name, start_date, dresses(name)').eq('company_id', COMPANY_ID).eq('status', 'booked').eq('start_date', today).limit(5),
+      supabase.from('rental_pricing_rules').select('id', { count: 'exact', head: true }).eq('company_id', COMPANY_ID).eq('active', true),
+      supabase.from('company_settings').select('logo_url').eq('company_id', COMPANY_ID).maybeSingle(),
     ])
 
     const available   = dresses?.filter(d => d.status === 'available').length  || 0
@@ -58,7 +63,7 @@ export default async function DashboardPage() {
               {isEmpty ? 'ابدأ بإضافة فساتينك لتشغيل النظام' : `${available} فستان متاح · ${rented} مؤجر · ${lateOrders?.length || 0} متأخر`}
             </p>
           </div>
-          <Link href="/dashboard/rentals/bookings/new"
+          <Link href="/dashboard/rentals/bookings/new" data-tour="new-booking-btn"
             className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-bold text-sm shadow hover:bg-primary/90 transition-all">
             <Plus className="w-4 h-4" /> حجز جديد
           </Link>
@@ -88,7 +93,7 @@ export default async function DashboardPage() {
         {/* ── Stats ── */}
         {!isEmpty && (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div data-tour="dashboard-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
                 { label: 'فساتين متاحة', value: available,  sub: `من ${totalDresses}`,         color: 'text-green-700',  bg: 'bg-green-50 dark:bg-green-900/20',   icon: Shirt,    href: '/dashboard/rentals/dresses' },
                 { label: 'مؤجرة الآن',   value: rented,     sub: 'حجز نشط',                   color: 'text-blue-700',   bg: 'bg-blue-50 dark:bg-blue-900/20',     icon: Calendar, href: '/dashboard/rentals/bookings' },
@@ -184,12 +189,13 @@ export default async function DashboardPage() {
               {[
                 { href: '/dashboard/rentals/dresses',       label: 'الفساتين',   icon: Shirt,     count: `${totalDresses} فستان`,   color: 'bg-pink-50 dark:bg-pink-900/10   border-pink-100' },
                 { href: '/dashboard/rentals/bookings/new',  label: 'حجز سريع',  icon: Zap,       count: 'فوري',                     color: 'bg-primary/5                     border-primary/10' },
-                { href: '/dashboard/rentals/calendar',      label: 'التقويم',   icon: Calendar,  count: 'رؤية كاملة',               color: 'bg-blue-50 dark:bg-blue-900/10   border-blue-100' },
+                { href: '/dashboard/rentals/calendar',      label: 'التقويم',   icon: Calendar,  count: 'رؤية كاملة',               color: 'bg-blue-50 dark:bg-blue-900/10   border-blue-100', tour: 'calendar-link' },
                 { href: '/dashboard/rentals/pricing',       label: 'التسعير',   icon: DollarSign,count: 'الباقات والأسعار',         color: 'bg-amber-50 dark:bg-amber-900/10 border-amber-100' },
-              ].map(link => {
+              ].map((link: any) => {
                 const Icon = link.icon
                 return (
                   <Link key={link.href} href={link.href}
+                    {...(link.tour ? { 'data-tour': link.tour } : {})}
                     className={`border rounded-2xl p-4 hover:shadow-md transition-all group flex items-center gap-3 ${link.color}`}>
                     <Icon className="w-5 h-5 text-primary shrink-0" />
                     <div>
@@ -203,6 +209,16 @@ export default async function DashboardPage() {
             </div>
           </>
         )}
+
+        <DashboardOnboarding
+          businessType    = "dress_rental"
+          hasProducts     = {false}
+          hasDresses      = {totalDresses > 0}
+          hasOrders       = {(orders?.length || 0) > 0}
+          hasSales        = {false}
+          hasBranding     = {!!(branding as any)?.logo_url}
+          hasPricingRules = {(pricingRules as any)?.length > 0}
+        />
       </div>
     )
   }
@@ -255,7 +271,7 @@ export default async function DashboardPage() {
           </p>
         </div>
         {features.showPOS && (
-          <Link href="/dashboard/pos"
+          <Link href="/dashboard/pos" data-tour="pos-btn"
             className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-xl font-bold text-sm shadow hover:bg-primary/90 transition-all">
             <ShoppingCart className="w-4 h-4" /> نقطة البيع
           </Link>
@@ -286,7 +302,7 @@ export default async function DashboardPage() {
       )}
 
       {/* KPI Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div data-tour="dashboard-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: 'مبيعات اليوم',    value: formatCurrency(todayTotal, CURRENCY),   sub: `${todaySales?.length || 0} فاتورة`,  color: 'text-blue-700',    bg: 'bg-blue-50 dark:bg-blue-900/20',    icon: Receipt,    href: '/dashboard/sales' },
           { label: 'مبيعات الشهر',    value: formatCurrency(monthTotal, CURRENCY),   sub: 'هذا الشهر',                          color: 'text-green-700',   bg: 'bg-green-50 dark:bg-green-900/20',  icon: TrendingUp, href: '/dashboard/sales' },
@@ -306,6 +322,17 @@ export default async function DashboardPage() {
           )
         })}
       </div>
+
+      {/* Onboarding */}
+      <DashboardOnboarding
+        businessType    = {features.businessType}
+        hasProducts     = {(productsCount as any)?.length > 0}
+        hasDresses      = {false}
+        hasOrders       = {false}
+        hasSales        = {(recentSales?.length || 0) > 0}
+        hasBranding     = {false}
+        hasPricingRules = {false}
+      />
 
       {/* AI Insights */}
       <InsightsWidget initialInsights={(aiInsights as any) || []} compact />

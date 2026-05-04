@@ -45,7 +45,7 @@ export function QuickActionBar({ features }: { features: Features }) {
   const actions = getActions(features)
 
   return (
-    <div className="flex items-center gap-2 px-4 py-2 border-b bg-card/80 backdrop-blur shrink-0 overflow-x-auto scrollbar-none">
+    <div data-tour="quick-action-bar" className="flex items-center gap-2 px-4 py-2 border-b bg-card/80 backdrop-blur shrink-0 overflow-x-auto scrollbar-none">
       {actions.map(action => {
         const Icon = action.icon
         return (
