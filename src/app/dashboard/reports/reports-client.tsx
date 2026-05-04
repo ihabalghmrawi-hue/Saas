@@ -1,349 +1,368 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
-  BarChart, Bar, PieChart, Pie, Cell, LineChart, Line,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
-import { Download, FileText, FileSpreadsheet, TrendingUp, TrendingDown, DollarSign } from 'lucide-react'
+import {
+  TrendingUp, TrendingDown, ShoppingCart, Users, Package,
+  AlertTriangle, Lightbulb, RefreshCw, Loader2, DollarSign,
+} from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
 
-interface ReportsClientProps {
-  monthlyData: Array<{ month: string; income: number; expenses: number; profit: number }>
-  expenseBreakdown: Array<{ name: string; color: string; amount: number; percentage: number }>
-  incomeBreakdown: Array<{ name: string; color: string; amount: number; percentage: number }>
-  totals: { income: number; expenses: number; profit: number }
+interface Props {
+  initialData: any
   currency: string
-  companyName: string
-  currentMonth: string
 }
 
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316']
+const PERIOD_OPTIONS = [
+  { label: '٧ أيام', days: 7 },
+  { label: '٣٠ يوم', days: 30 },
+  { label: '٩٠ يوم', days: 90 },
+  { label: '١٢ شهر', days: 365 },
+]
 
-export function ReportsClient({
-  monthlyData, expenseBreakdown, incomeBreakdown, totals, currency, companyName, currentMonth
-}: ReportsClientProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'income' | 'expense' | 'pl'>('overview')
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']
 
-  const profitMargin = totals.income > 0 ? (totals.profit / totals.income) * 100 : 0
+const INSIGHT_STYLES = {
+  danger:  'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400',
+  warning: 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400',
+  info:    'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400',
+}
+const INSIGHT_ICONS = {
+  danger: '🔴',
+  warning: '🟡',
+  info: '🔵',
+}
 
-  const exportPDF = async () => {
-    // Dynamic import for PDF generation
-    const { default: jsPDF } = await import('jspdf')
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+export function ReportsClient({ initialData, currency }: Props) {
+  const [data, setData] = useState(initialData)
+  const [days, setDays] = useState(30)
+  const [loading, setLoading] = useState(false)
+  const [tab, setTab] = useState<'overview' | 'products' | 'customers' | 'inventory'>('overview')
 
-    doc.setFontSize(20)
-    doc.text('Financial Report', 20, 25)
-    doc.setFontSize(12)
-    doc.text(`Company: ${companyName}`, 20, 35)
-    doc.text(`Period: Last 6 Months`, 20, 43)
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, 51)
+  const loadData = useCallback(async (d: number) => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/reports/data?days=${d}`)
+      if (res.ok) setData(await res.json())
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-    doc.setFontSize(14)
-    doc.text('Summary', 20, 65)
-    doc.setFontSize(11)
-    doc.text(`Total Income: ${formatCurrency(totals.income, currency)}`, 20, 75)
-    doc.text(`Total Expenses: ${formatCurrency(totals.expenses, currency)}`, 20, 83)
-    doc.text(`Net Profit: ${formatCurrency(totals.profit, currency)}`, 20, 91)
-    doc.text(`Profit Margin: ${profitMargin.toFixed(1)}%`, 20, 99)
-
-    doc.setFontSize(14)
-    doc.text('Monthly Breakdown', 20, 115)
-    doc.setFontSize(10)
-    let y = 125
-    monthlyData.forEach(m => {
-      doc.text(`${m.month}: Income ${formatCurrency(m.income, currency)} | Expenses ${formatCurrency(m.expenses, currency)} | Profit ${formatCurrency(m.profit, currency)}`, 20, y)
-      y += 8
-    })
-
-    doc.save(`financial-report-${new Date().toISOString().split('T')[0]}.pdf`)
+  const handlePeriod = (d: number) => {
+    setDays(d)
+    loadData(d)
   }
 
-  const exportExcel = async () => {
-    const { utils, writeFile } = await import('xlsx')
-    const wb = utils.book_new()
-
-    // Summary sheet
-    const summaryData = [
-      ['Financial Report', ''],
-      ['Company', companyName],
-      ['Period', 'Last 6 Months'],
-      ['Generated', new Date().toLocaleDateString()],
-      ['', ''],
-      ['Metric', 'Amount'],
-      ['Total Income', totals.income],
-      ['Total Expenses', totals.expenses],
-      ['Net Profit', totals.profit],
-      ['Profit Margin', `${profitMargin.toFixed(1)}%`],
-    ]
-    const ws1 = utils.aoa_to_sheet(summaryData)
-    utils.book_append_sheet(wb, ws1, 'Summary')
-
-    // Monthly data sheet
-    const monthlySheet = [
-      ['Month', 'Income', 'Expenses', 'Profit'],
-      ...monthlyData.map(m => [m.month, m.income, m.expenses, m.profit])
-    ]
-    const ws2 = utils.aoa_to_sheet(monthlySheet)
-    utils.book_append_sheet(wb, ws2, 'Monthly Data')
-
-    // Expenses breakdown
-    const expSheet = [
-      ['Category', 'Amount', 'Percentage'],
-      ...expenseBreakdown.map(e => [e.name, e.amount, `${e.percentage.toFixed(1)}%`])
-    ]
-    const ws3 = utils.aoa_to_sheet(expSheet)
-    utils.book_append_sheet(wb, ws3, 'Expenses Breakdown')
-
-    writeFile(wb, `financial-report-${new Date().toISOString().split('T')[0]}.xlsx`)
-  }
+  const t = data?.totals
+  const fmt = (v: number) => formatCurrency(v, currency)
 
   const tabs = [
-    { key: 'overview', label: 'نظرة عامة' },
-    { key: 'income', label: 'الإيرادات' },
-    { key: 'expense', label: 'المصروفات' },
-    { key: 'pl', label: 'الربح والخسارة' },
+    { key: 'overview',   label: 'نظرة عامة',   icon: TrendingUp },
+    { key: 'products',   label: 'المنتجات',      icon: Package },
+    { key: 'customers',  label: 'العملاء',        icon: Users },
+    { key: 'inventory',  label: 'المخزون',        icon: ShoppingCart },
   ] as const
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-5" dir="rtl">
+      {/* Header + Period selector */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-xl font-bold text-foreground">التقارير المالية</h2>
-          <p className="text-sm text-muted-foreground">آخر 6 أشهر • {companyName}</p>
+          <h1 className="text-xl font-bold">التقارير والتحليلات</h1>
+          <p className="text-sm text-muted-foreground">آخر {days} يوم</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={exportPDF}
-            className="flex items-center gap-2 border border-input bg-background px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent transition-colors">
-            <FileText className="w-4 h-4 text-red-500" />
-            تصدير PDF
-          </button>
-          <button onClick={exportExcel}
-            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
-            <FileSpreadsheet className="w-4 h-4" />
-            تصدير Excel
+          {PERIOD_OPTIONS.map(p => (
+            <button key={p.days} onClick={() => handlePeriod(p.days)}
+              className={cn('px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+                days === p.days ? 'bg-primary text-primary-foreground' : 'bg-card border hover:bg-accent')}>
+              {p.label}
+            </button>
+          ))}
+          <button onClick={() => loadData(days)} disabled={loading}
+            className="p-1.5 border rounded-lg hover:bg-accent text-muted-foreground">
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {[
-          { label: 'إجمالي الإيرادات', value: totals.income, icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-          { label: 'إجمالي المصروفات', value: totals.expenses, icon: TrendingDown, color: 'text-red-600', bg: 'bg-red-50 dark:bg-red-900/20' },
-          { label: 'صافي الربح', value: totals.profit, icon: DollarSign, color: totals.profit >= 0 ? 'text-blue-600' : 'text-orange-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-          { label: 'هامش الربح', value: null, display: `${profitMargin.toFixed(1)}%`, icon: TrendingUp, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
-        ].map((item, i) => {
-          const Icon = item.icon
-          return (
-            <div key={i} className={`rounded-xl border p-5 ${item.bg}`}>
-              <div className="flex items-center justify-between mb-3">
-                <Icon className={`w-5 h-5 ${item.color}`} />
+      {/* Smart Insights */}
+      {data?.insights?.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+            <Lightbulb className="w-3.5 h-3.5" /> تنبيهات ذكية
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {data.insights.map((ins: any, i: number) => (
+              <div key={i} className={cn('flex items-start gap-2 p-3 rounded-xl border text-sm', INSIGHT_STYLES[ins.type as keyof typeof INSIGHT_STYLES])}>
+                <span className="shrink-0">{INSIGHT_ICONS[ins.type as keyof typeof INSIGHT_ICONS]}</span>
+                {ins.message}
               </div>
-              <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
-              <p className={`text-xl font-bold ${item.color}`}>
-                {item.display || formatCurrency(item.value!, currency)}
-              </p>
-            </div>
-          )
-        })}
-      </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit">
-        {tabs.map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className={cn('px-4 py-2 rounded-md text-sm font-medium transition-colors',
-              activeTab === tab.key ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
-            {tab.label}
+      {/* KPI Cards */}
+      {t && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            { label: 'إجمالي المبيعات', value: fmt(t.revenue), icon: DollarSign, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20', trend: null },
+            { label: 'الربح الإجمالي', value: fmt(t.grossProfit), icon: TrendingUp, color: t.grossProfit >= 0 ? 'text-green-600' : 'text-red-600', bg: 'bg-green-50 dark:bg-green-900/20', trend: t.revenue > 0 ? ((t.grossProfit / t.revenue) * 100).toFixed(1) + '%' : null },
+            { label: 'صافي الربح', value: fmt(t.netProfit), icon: t.netProfit >= 0 ? TrendingUp : TrendingDown, color: t.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20', trend: null },
+            { label: 'عدد الفواتير', value: t.orders.toLocaleString('ar'), icon: ShoppingCart, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20', trend: `متوسط ${fmt(t.avgOrder)}` },
+          ].map((card, i) => {
+            const Icon = card.icon
+            return (
+              <div key={i} className={cn('rounded-2xl p-4', card.bg)}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-muted-foreground">{card.label}</p>
+                  <Icon className={cn('w-4 h-4', card.color)} />
+                </div>
+                <p className={cn('text-xl font-bold', card.color)}>{card.value}</p>
+                {card.trend && <p className="text-xs text-muted-foreground mt-0.5">{card.trend}</p>}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Tab Nav */}
+      <div className="flex gap-1 bg-muted/50 p-1 rounded-xl w-fit">
+        {tabs.map(({ key, label, icon: Icon }) => (
+          <button key={key} onClick={() => setTab(key as any)}
+            className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+              tab === key ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+            <Icon className="w-3.5 h-3.5" />
+            {label}
           </button>
         ))}
       </div>
 
-      {/* Tab Content */}
-      {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Bar Chart */}
-          <div className="bg-card rounded-xl border p-5 shadow-sm">
-            <h3 className="font-semibold text-foreground mb-4">مقارنة شهرية</h3>
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={monthlyData} barGap={4}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false}
-                  tickFormatter={v => `${(v/1000).toFixed(0)}k`} width={35} />
-                <Tooltip formatter={(v: number) => formatCurrency(v, currency)}
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
-                <Legend formatter={v => v === 'income' ? 'الإيرادات' : 'المصروفات'} wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="income" name="income" fill="#10B981" radius={[4,4,0,0]} />
-                <Bar dataKey="expenses" name="expenses" fill="#EF4444" radius={[4,4,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
+      {/* ── OVERVIEW TAB ── */}
+      {tab === 'overview' && (
+        <div className="space-y-4">
+          <div className="bg-card border rounded-2xl p-5">
+            <h3 className="font-semibold mb-4 text-sm">المبيعات اليومية</h3>
+            {data?.dailySales?.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={data.dailySales}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" strokeOpacity={0.1} />
+                  <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip formatter={(v: any) => fmt(Number(v))} />
+                  <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} dot={false} name="المبيعات" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : <EmptyChart />}
           </div>
 
-          {/* Expenses Pie */}
-          <div className="bg-card rounded-xl border p-5 shadow-sm">
-            <h3 className="font-semibold text-foreground mb-4">توزيع المصروفات</h3>
-            {expenseBreakdown.length === 0 ? (
-              <div className="flex items-center justify-center h-56 text-muted-foreground text-sm">لا توجد بيانات</div>
-            ) : (
-              <div className="flex items-center gap-4">
-                <ResponsiveContainer width="50%" height={200}>
-                  <PieChart>
-                    <Pie data={expenseBreakdown} cx="50%" cy="50%" innerRadius={55} outerRadius={85}
-                      dataKey="amount" paddingAngle={3}>
-                      {expenseBreakdown.map((entry, i) => (
-                        <Cell key={i} fill={entry.color || COLORS[i % COLORS.length]} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-card border rounded-2xl p-5">
+              <h3 className="font-semibold mb-4 text-sm">أفضل ١٠ منتجات</h3>
+              {data?.topProducts?.length > 0 ? (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={data.topProducts.slice(0, 5)} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} />
+                    <XAxis type="number" tick={{ fontSize: 10 }} />
+                    <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={80} />
+                    <Tooltip formatter={(v: any) => fmt(Number(v))} />
+                    <Bar dataKey="revenue" name="المبيعات" radius={4}>
+                      {data.topProducts.slice(0, 5).map((_: any, i: number) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
                       ))}
-                    </Pie>
-                    <Tooltip formatter={(v: number) => formatCurrency(v, currency)}
-                      contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
-                  </PieChart>
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
-                <div className="flex-1 space-y-2">
-                  {expenseBreakdown.slice(0, 5).map((item, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color || COLORS[i % COLORS.length] }} />
-                      <span className="text-xs text-muted-foreground flex-1 truncate">{item.name}</span>
-                      <span className="text-xs font-medium text-foreground">{item.percentage.toFixed(0)}%</span>
+              ) : <EmptyChart />}
+            </div>
+
+            <div className="bg-card border rounded-2xl p-5">
+              <h3 className="font-semibold mb-4 text-sm">ملخص مالي</h3>
+              <div className="space-y-3">
+                {t && [
+                  { label: 'إجمالي المبيعات', value: t.revenue, color: 'bg-blue-500' },
+                  { label: 'تكلفة البضاعة', value: t.cost, color: 'bg-orange-400' },
+                  { label: 'المصروفات', value: t.expenses, color: 'bg-red-400' },
+                  { label: 'صافي الربح', value: t.netProfit, color: t.netProfit >= 0 ? 'bg-green-500' : 'bg-red-600' },
+                ].map((row, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-muted-foreground">{row.label}</span>
+                      <span className={cn('font-medium', row.value < 0 && 'text-red-500')}>{fmt(row.value)}</span>
                     </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className={cn('h-full rounded-full', row.color)}
+                        style={{ width: `${Math.min(100, Math.abs(row.value) / (t.revenue || 1) * 100)}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── PRODUCTS TAB ── */}
+      {tab === 'products' && (
+        <div className="space-y-4">
+          <div className="bg-card border rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 border-b bg-muted/30">
+              <h3 className="font-semibold text-sm">أفضل المنتجات مبيعاً</h3>
+            </div>
+            {data?.topProducts?.length > 0 ? (
+              <table className="w-full text-sm">
+                <thead className="bg-muted/20">
+                  <tr>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">#</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">المنتج</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">الكمية</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">المبيعات</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">الربح</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground">الهامش</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {data.topProducts.map((p: any, i: number) => (
+                    <tr key={i} className="hover:bg-muted/20">
+                      <td className="px-4 py-2.5 text-muted-foreground text-xs">{i + 1}</td>
+                      <td className="px-4 py-2.5 font-medium">{p.name}</td>
+                      <td className="px-4 py-2.5">{p.qty.toLocaleString('ar')}</td>
+                      <td className="px-4 py-2.5 text-blue-600 font-medium">{fmt(p.revenue)}</td>
+                      <td className={cn('px-4 py-2.5 font-medium', p.profit >= 0 ? 'text-green-600' : 'text-red-500')}>{fmt(p.profit)}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={cn('text-xs px-2 py-0.5 rounded-full font-medium',
+                          p.margin >= 30 ? 'bg-green-100 text-green-700' :
+                          p.margin >= 10 ? 'bg-amber-100 text-amber-700' :
+                          'bg-red-100 text-red-700')}>
+                          {p.margin.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
                   ))}
-                </div>
+                </tbody>
+              </table>
+            ) : <EmptyState label="لا توجد مبيعات في هذه الفترة" />}
+          </div>
+        </div>
+      )}
+
+      {/* ── CUSTOMERS TAB ── */}
+      {tab === 'customers' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-card border rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 border-b bg-muted/30">
+              <h3 className="font-semibold text-sm">أفضل العملاء</h3>
+            </div>
+            {data?.topCustomers?.length > 0 ? (
+              <div className="divide-y divide-border">
+                {data.topCustomers.map((c: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{c.name}</p>
+                      <p className="text-xs text-muted-foreground">{fmt(c.spent)}</p>
+                    </div>
+                    <div className="w-20 h-1.5 bg-muted rounded-full">
+                      <div className="h-full bg-primary rounded-full"
+                        style={{ width: `${(c.spent / (data.topCustomers[0]?.spent || 1)) * 100}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <EmptyState label="لا يوجد عملاء بمشتريات" />}
+          </div>
+
+          <div className="bg-card border rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 border-b bg-amber-50 dark:bg-amber-900/20">
+              <h3 className="font-semibold text-sm text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" /> أعلى الديون
+              </h3>
+            </div>
+            {data?.highDebt?.length > 0 ? (
+              <div className="divide-y divide-border">
+                {data.highDebt.map((c: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between px-4 py-3">
+                    <p className="text-sm font-medium">{c.name}</p>
+                    <span className="text-sm font-bold text-red-500">{fmt(c.debt)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : <EmptyState label="لا توجد ديون مستحقة" />}
+          </div>
+        </div>
+      )}
+
+      {/* ── INVENTORY TAB ── */}
+      {tab === 'inventory' && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="bg-card border rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 border-b bg-red-50 dark:bg-red-900/20">
+              <h3 className="font-semibold text-sm text-red-700 dark:text-red-400 flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4" /> منتجات على وشك النفاد
+              </h3>
+            </div>
+            {data?.lowStock?.length > 0 ? (
+              <div className="divide-y divide-border">
+                {data.lowStock.map((p: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between px-4 py-3">
+                    <p className="text-sm font-medium truncate">{p.name}</p>
+                    <span className={cn('text-sm font-bold tabular-nums', p.stock === 0 ? 'text-red-600' : 'text-amber-600')}>
+                      {p.stock === 0 ? 'نفد' : `${p.stock} قطعة`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 p-4 text-green-600 text-sm">
+                ✅ المخزون في حالة جيدة
               </div>
             )}
           </div>
-        </div>
-      )}
 
-      {activeTab === 'income' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card rounded-xl border p-5 shadow-sm">
-            <h3 className="font-semibold text-foreground mb-4">تطور الإيرادات</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}k`} width={35} />
-                <Tooltip formatter={(v: number) => formatCurrency(v, currency)}
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
-                <Line dataKey="income" stroke="#10B981" strokeWidth={3} dot={{ r: 5, fill: '#10B981' }} name="الإيرادات" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-card rounded-xl border p-5 shadow-sm">
-            <h3 className="font-semibold text-foreground mb-4">مصادر الإيرادات</h3>
-            <div className="space-y-3">
-              {incomeBreakdown.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-8">لا توجد بيانات</p>
-              ) : incomeBreakdown.map((item, i) => (
-                <div key={i} className="space-y-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-foreground">{item.name}</span>
-                    <div className="flex gap-3">
-                      <span className="text-emerald-600 font-semibold">{formatCurrency(item.amount, currency)}</span>
-                      <span className="text-muted-foreground">{item.percentage.toFixed(1)}%</span>
-                    </div>
-                  </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                      style={{ width: `${item.percentage}%` }} />
-                  </div>
-                </div>
-              ))}
+          <div className="bg-card border rounded-2xl overflow-hidden">
+            <div className="px-5 py-3 border-b bg-muted/30">
+              <h3 className="font-semibold text-sm flex items-center gap-1.5">
+                <Package className="w-4 h-4 text-muted-foreground" />
+                مخزون راكد (لم يُباع)
+              </h3>
             </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'expense' && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-card rounded-xl border p-5 shadow-sm">
-            <h3 className="font-semibold text-foreground mb-4">تطور المصروفات</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}k`} width={35} />
-                <Tooltip formatter={(v: number) => formatCurrency(v, currency)}
-                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }} />
-                <Line dataKey="expenses" stroke="#EF4444" strokeWidth={3} dot={{ r: 5, fill: '#EF4444' }} name="المصروفات" />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-card rounded-xl border p-5 shadow-sm">
-            <h3 className="font-semibold text-foreground mb-4">تفاصيل المصروفات</h3>
-            <div className="space-y-3">
-              {expenseBreakdown.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-8">لا توجد بيانات</p>
-              ) : expenseBreakdown.map((item, i) => (
-                <div key={i} className="space-y-1.5">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium text-foreground">{item.name}</span>
-                    <div className="flex gap-3">
-                      <span className="text-red-600 font-semibold">{formatCurrency(item.amount, currency)}</span>
-                      <span className="text-muted-foreground">{item.percentage.toFixed(1)}%</span>
+            {data?.deadStock?.length > 0 ? (
+              <div className="divide-y divide-border">
+                {data.deadStock.map((p: any, i: number) => (
+                  <div key={i} className="flex items-center justify-between px-4 py-3">
+                    <div>
+                      <p className="text-sm font-medium truncate">{p.name}</p>
+                      <p className="text-xs text-muted-foreground">{p.stock} قطعة</p>
                     </div>
+                    <span className="text-sm text-muted-foreground">{fmt(p.value)}</span>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-red-500 rounded-full transition-all duration-500"
-                      style={{ width: `${item.percentage}%`, backgroundColor: item.color || '#EF4444' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'pl' && (
-        <div className="bg-card rounded-xl border p-5 shadow-sm">
-          <h3 className="font-semibold text-foreground mb-5">قائمة الأرباح والخسائر</h3>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="text-right py-3 px-4 font-medium text-muted-foreground">الشهر</th>
-                  <th className="text-center py-3 px-4 font-medium text-emerald-600">الإيرادات</th>
-                  <th className="text-center py-3 px-4 font-medium text-red-600">المصروفات</th>
-                  <th className="text-center py-3 px-4 font-medium text-blue-600">صافي الربح</th>
-                  <th className="text-center py-3 px-4 font-medium text-muted-foreground">الهامش</th>
-                </tr>
-              </thead>
-              <tbody>
-                {monthlyData.map((row, i) => (
-                  <tr key={i} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="py-3.5 px-4 font-medium text-foreground">{row.month}</td>
-                    <td className="py-3.5 px-4 text-center text-emerald-600 font-semibold">{formatCurrency(row.income, currency)}</td>
-                    <td className="py-3.5 px-4 text-center text-red-600 font-semibold">{formatCurrency(row.expenses, currency)}</td>
-                    <td className={cn('py-3.5 px-4 text-center font-bold', row.profit >= 0 ? 'text-blue-600' : 'text-orange-600')}>
-                      {formatCurrency(row.profit, currency)}
-                    </td>
-                    <td className="py-3.5 px-4 text-center text-muted-foreground text-xs">
-                      {row.income > 0 ? `${((row.profit / row.income) * 100).toFixed(1)}%` : '-'}
-                    </td>
-                  </tr>
                 ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-muted/50 border-t-2">
-                  <td className="py-3.5 px-4 font-bold text-foreground">الإجمالي</td>
-                  <td className="py-3.5 px-4 text-center text-emerald-600 font-bold">{formatCurrency(totals.income, currency)}</td>
-                  <td className="py-3.5 px-4 text-center text-red-600 font-bold">{formatCurrency(totals.expenses, currency)}</td>
-                  <td className={cn('py-3.5 px-4 text-center font-bold', totals.profit >= 0 ? 'text-blue-700' : 'text-orange-600')}>
-                    {formatCurrency(totals.profit, currency)}
-                  </td>
-                  <td className="py-3.5 px-4 text-center text-muted-foreground font-semibold text-sm">
-                    {totals.income > 0 ? `${((totals.profit / totals.income) * 100).toFixed(1)}%` : '-'}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+              </div>
+            ) : <EmptyState label={`لا يوجد مخزون راكد خلال ${days} يوم`} />}
           </div>
         </div>
       )}
     </div>
+  )
+}
+
+function EmptyChart() {
+  return (
+    <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+      لا توجد بيانات كافية لعرض الرسم البياني
+    </div>
+  )
+}
+
+function EmptyState({ label }: { label: string }) {
+  return (
+    <div className="p-8 text-center text-muted-foreground text-sm">{label}</div>
   )
 }
