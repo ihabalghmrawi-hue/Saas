@@ -76,60 +76,60 @@ $$ LANGUAGE sql SECURITY DEFINER STABLE;
 -- Customers
 DROP POLICY IF EXISTS "allow_all_customers"  ON customers;
 CREATE POLICY "tenant_customers" ON customers
-  FOR ALL USING (company_id = get_my_tenant_id())
-  WITH CHECK (company_id = get_my_tenant_id());
+  FOR ALL USING (company_id::TEXT = get_my_tenant_id())
+  WITH CHECK (company_id::TEXT = get_my_tenant_id());
 
 -- Suppliers
 DROP POLICY IF EXISTS "allow_all_suppliers"  ON suppliers;
 CREATE POLICY "tenant_suppliers" ON suppliers
-  FOR ALL USING (company_id = get_my_tenant_id())
-  WITH CHECK (company_id = get_my_tenant_id());
+  FOR ALL USING (company_id::TEXT = get_my_tenant_id())
+  WITH CHECK (company_id::TEXT = get_my_tenant_id());
 
 -- Products
 DROP POLICY IF EXISTS "allow_all_products"   ON products;
 CREATE POLICY "tenant_products" ON products
-  FOR ALL USING (company_id = get_my_tenant_id())
-  WITH CHECK (company_id = get_my_tenant_id());
+  FOR ALL USING (company_id::TEXT = get_my_tenant_id())
+  WITH CHECK (company_id::TEXT = get_my_tenant_id());
 
 -- Product categories
 DROP POLICY IF EXISTS "allow_all_product_categories" ON product_categories;
 CREATE POLICY "tenant_product_categories" ON product_categories
-  FOR ALL USING (company_id = get_my_tenant_id())
-  WITH CHECK (company_id = get_my_tenant_id());
+  FOR ALL USING (company_id::TEXT = get_my_tenant_id())
+  WITH CHECK (company_id::TEXT = get_my_tenant_id());
 
 -- Inventory
 DROP POLICY IF EXISTS "allow_all_inventory"  ON inventory;
 CREATE POLICY "tenant_inventory" ON inventory
-  FOR ALL USING (company_id = get_my_tenant_id())
-  WITH CHECK (company_id = get_my_tenant_id());
+  FOR ALL USING (company_id::TEXT = get_my_tenant_id())
+  WITH CHECK (company_id::TEXT = get_my_tenant_id());
 
 -- Sales
 DROP POLICY IF EXISTS "allow_all_sales"      ON sales;
 CREATE POLICY "tenant_sales" ON sales
-  FOR ALL USING (company_id = get_my_tenant_id())
-  WITH CHECK (company_id = get_my_tenant_id());
+  FOR ALL USING (company_id::TEXT = get_my_tenant_id())
+  WITH CHECK (company_id::TEXT = get_my_tenant_id());
 
 -- Sale items (via sale's company_id)
 DROP POLICY IF EXISTS "allow_all_sale_items" ON sale_items;
 CREATE POLICY "tenant_sale_items" ON sale_items
   FOR ALL USING (
-    EXISTS (SELECT 1 FROM sales s WHERE s.id = sale_id AND s.company_id = get_my_tenant_id())
+    EXISTS (SELECT 1 FROM sales s WHERE s.id = sale_id AND s.company_id::TEXT = get_my_tenant_id())
   )
   WITH CHECK (
-    EXISTS (SELECT 1 FROM sales s WHERE s.id = sale_id AND s.company_id = get_my_tenant_id())
+    EXISTS (SELECT 1 FROM sales s WHERE s.id = sale_id AND s.company_id::TEXT = get_my_tenant_id())
   );
 
 -- Purchases
 DROP POLICY IF EXISTS "allow_all_purchases"  ON purchases;
 CREATE POLICY "tenant_purchases" ON purchases
-  FOR ALL USING (company_id = get_my_tenant_id())
-  WITH CHECK (company_id = get_my_tenant_id());
+  FOR ALL USING (company_id::TEXT = get_my_tenant_id())
+  WITH CHECK (company_id::TEXT = get_my_tenant_id());
 
 -- Expenses
 DROP POLICY IF EXISTS "allow_all_expenses"   ON expenses;
 CREATE POLICY "tenant_expenses" ON expenses
-  FOR ALL USING (company_id = get_my_tenant_id())
-  WITH CHECK (company_id = get_my_tenant_id());
+  FOR ALL USING (company_id::TEXT = get_my_tenant_id())
+  WITH CHECK (company_id::TEXT = get_my_tenant_id());
 
 -- Dresses
 DROP POLICY IF EXISTS "allow_all_dresses"    ON dresses;
@@ -150,8 +150,9 @@ CREATE POLICY "tenant_backups" ON backup_snapshots
   WITH CHECK (company_id::TEXT = get_my_tenant_id());
 
 -- Audit logs
+DROP POLICY IF EXISTS "tenant_audit_logs" ON audit_logs;
 CREATE POLICY "tenant_audit_logs" ON audit_logs
-  FOR SELECT USING (company_id = get_my_tenant_id());
+  FOR SELECT USING (company_id::TEXT = get_my_tenant_id());
 
 -- ── 6. SEED FREE SUBSCRIPTION FOR EXISTING TENANT ────────────────────────────
 -- Run this after setup to give the existing single-tenant a free subscription
