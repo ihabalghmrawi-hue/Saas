@@ -6,6 +6,7 @@ import {
   AlertTriangle, Users, Truck, DollarSign, ArrowUpRight,
   ShoppingBag, Receipt
 } from 'lucide-react'
+import { InsightsWidget } from '@/components/insights-widget'
 
 export const dynamic = 'force-dynamic'
 
@@ -19,6 +20,7 @@ export default async function DashboardPage() {
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
 
   const [
+    { data: aiInsights },
     { data: todaySales },
     { data: monthSales },
     { data: monthPurchases },
@@ -29,6 +31,7 @@ export default async function DashboardPage() {
     { data: suppliersCount },
     { data: productsCount },
   ] = await Promise.all([
+    supabase.from('ai_insights').select('*').eq('company_id', COMPANY_ID).gte('expires_at', new Date().toISOString()).order('generated_at', { ascending: false }),
     supabase.from('sales').select('total, status').eq('company_id', COMPANY_ID).gte('sale_date', today).eq('status', 'completed'),
     supabase.from('sales').select('total, subtotal, discount_amount').eq('company_id', COMPANY_ID).gte('sale_date', monthStart).eq('status', 'completed'),
     supabase.from('purchases').select('total').eq('company_id', COMPANY_ID).gte('purchase_date', monthStart),
@@ -101,6 +104,9 @@ export default async function DashboardPage() {
           )
         })}
       </div>
+
+      {/* AI Insights Widget */}
+      <InsightsWidget initialInsights={aiInsights as any || []} compact />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Recent Sales */}
