@@ -7,13 +7,14 @@ import { BusinessType, BUSINESS_TYPES, getFeatures } from '@/lib/features'
 import { cn } from '@/lib/utils'
 
 const DESCRIPTIONS: Record<BusinessType, string> = {
-  pharmacy:   'تتبع انتهاء الصلاحية، الدُفعات، تصنيفات الأدوية',
-  retail:     'نقطة بيع سريعة، باركود، منتجات يومية',
-  wholesale:  'أسعار الجملة، الحد الأدنى للكميات، فواتير كبيرة',
-  clothing:   'مقاسات وألوان، متغيرات المنتج، عرض شبكي',
-  stationery: 'فئات بسيطة، بيع سريع، مدرسة ومكتب',
-  tools:      'أدوات وقطع غيار، مشتريات وصيانة',
-  other:      'إعداد عام مناسب لأي نشاط تجاري',
+  pharmacy:     'تتبع انتهاء الصلاحية، الدُفعات، تصنيفات الأدوية',
+  retail:       'نقطة بيع سريعة، باركود، منتجات يومية',
+  wholesale:    'أسعار الجملة، الحد الأدنى للكميات، فواتير كبيرة',
+  clothing:     'مقاسات وألوان، متغيرات المنتج، عرض شبكي',
+  stationery:   'فئات بسيطة، بيع سريع، مدرسة ومكتب',
+  tools:        'أدوات وقطع غيار، مشتريات وصيانة',
+  dress_rental: 'إدارة الفساتين، الحجوزات، الإرجاعات، التأمين',
+  other:        'إعداد عام مناسب لأي نشاط تجاري',
 }
 
 type Step = 'select' | 'loading' | 'done'
@@ -159,8 +160,11 @@ export default function OnboardingPage() {
               {getFeatures(selected).fastPOS && <Tag>POS سريع</Tag>}
               {getFeatures(selected).showReturns && <Tag>المرتجعات</Tag>}
               {getFeatures(selected).showShifts && <Tag>الورديات</Tag>}
+              {getFeatures(selected).hasRental && <Tag>إدارة الفساتين</Tag>}
+              {getFeatures(selected).hasRental && <Tag>نظام الحجوزات</Tag>}
+              {getFeatures(selected).hasRental && <Tag>تتبع الإرجاعات</Tag>}
               <Tag variant="green">فئات جاهزة</Tag>
-              <Tag variant="green">منتجات تجريبية</Tag>
+              {!getFeatures(selected).hasRental && <Tag variant="green">منتجات تجريبية</Tag>}
             </div>
           </div>
         )}

@@ -6,7 +6,7 @@ import {
   LayoutDashboard, ShoppingCart, Package, ShoppingBag, Users, Truck,
   BarChart3, Settings, BookOpen, Wallet, Receipt, DollarSign, Tag,
   Warehouse, TrendingUp, RotateCcw, Clock, Shield, UserCog, LogOut,
-  Layers,
+  Layers, Shirt, Calendar,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import type { Features } from '@/lib/features'
@@ -57,10 +57,10 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
     {
       label: 'المبيعات',
       items: [
-        { label: 'نقطة البيع', href: '/dashboard/pos', icon: ShoppingCart, show: can(staff, 'pos.access') },
-        { label: 'فواتير المبيعات', href: '/dashboard/sales', icon: Receipt, show: can(staff, 'returns.view') },
+        { label: 'نقطة البيع', href: '/dashboard/pos', icon: ShoppingCart, show: features.showPOS && can(staff, 'pos.access') },
+        { label: 'فواتير المبيعات', href: '/dashboard/sales', icon: Receipt, show: features.showPOS && can(staff, 'returns.view') },
         { label: 'المرتجعات', href: '/dashboard/returns', icon: RotateCcw, show: features.showReturns && can(staff, 'returns.view') },
-        { label: 'العملاء', href: '/dashboard/customers', icon: Users, show: can(staff, 'customers.view') },
+        { label: 'العملاء', href: '/dashboard/customers', icon: Users, show: features.showPOS && can(staff, 'customers.view') },
         { label: 'الورديات', href: '/dashboard/shifts', icon: Clock, show: features.showShifts && can(staff, 'shifts.manage') },
       ],
     },
@@ -74,9 +74,9 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
     {
       label: 'المستودع',
       items: [
-        { label: 'المنتجات', href: '/dashboard/inventory', icon: Package, show: can(staff, 'inventory.view') },
-        { label: 'حركة المخزون', href: '/dashboard/inventory/movements', icon: Warehouse, show: can(staff, 'inventory.view') },
-        { label: 'المتغيرات', href: '/dashboard/inventory/variants', icon: Layers, show: features.hasVariants && can(staff, 'inventory.view') },
+        { label: 'المنتجات', href: '/dashboard/inventory', icon: Package, show: features.showInventory && can(staff, 'inventory.view') },
+        { label: 'حركة المخزون', href: '/dashboard/inventory/movements', icon: Warehouse, show: features.showInventory && can(staff, 'inventory.view') },
+        { label: 'المتغيرات', href: '/dashboard/inventory/variants', icon: Layers, show: features.hasVariants && features.showInventory && can(staff, 'inventory.view') },
       ],
     },
     {
@@ -92,6 +92,15 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
       items: [
         { label: 'التقارير', href: '/dashboard/reports', icon: BarChart3, show: can(staff, 'reports.view') },
         { label: 'الأرباح والخسائر', href: '/dashboard/reports/profit-loss', icon: TrendingUp, show: can(staff, 'reports.view') },
+      ],
+    },
+    {
+      label: 'التأجير',
+      items: [
+        { label: 'لوحة التأجير', href: '/dashboard/rentals', icon: LayoutDashboard, show: features.hasRental },
+        { label: 'الفساتين', href: '/dashboard/rentals/dresses', icon: Shirt, show: features.hasRental },
+        { label: 'الحجوزات', href: '/dashboard/rentals/bookings', icon: Calendar, show: features.hasRental },
+        { label: 'الإرجاعات', href: '/dashboard/rentals/returns', icon: RotateCcw, show: features.hasRental },
       ],
     },
     {
