@@ -39,6 +39,11 @@ export function InventoryClient({ products: initialProducts, categories, units, 
   const [error, setError] = useState('')
   const [tab, setTab] = useState<'all' | 'low'>('all')
 
+  const getTotalStock = (product: any) => {
+    if (!Array.isArray(product?.inventory)) return 0
+    return product.inventory.reduce((s: number, i: any) => s + Number(i?.quantity || 0), 0)
+  }
+
   const filtered = useMemo(() => {
     return products.filter(p => {
       const matchSearch = !search ||
@@ -52,11 +57,6 @@ export function InventoryClient({ products: initialProducts, categories, units, 
       return matchSearch && matchCategory && matchLow
     })
   }, [products, search, filterCategory, filterLowStock])
-
-  const getTotalStock = (product: any) => {
-    if (!Array.isArray(product?.inventory)) return 0
-    return product.inventory.reduce((s: number, i: any) => s + Number(i?.quantity || 0), 0)
-  }
 
   const lowStockCount = products.filter(p => p.track_inventory && getTotalStock(p) <= Number(p.min_stock_level || 0)).length
 
