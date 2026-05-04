@@ -113,6 +113,7 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
         { label: 'سجل الأحداث', href: '/dashboard/admin/audit', icon: Shield, show: can(staff, 'admin.audit') },
         { label: 'الفئات', href: '/dashboard/categories', icon: Tag, show: can(staff, 'admin.settings') },
         { label: 'الإعدادات', href: '/dashboard/settings', icon: Settings, show: can(staff, 'admin.settings') },
+        { label: 'النسخ الاحتياطية', href: '/dashboard/settings/backup', icon: Shield, show: can(staff, 'admin.settings') },
       ],
     },
   ]
