@@ -20,6 +20,8 @@ import {
   Warehouse,
   TrendingUp,
   FileText,
+  RotateCcw,
+  Clock,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import type { Company } from '@/types/database'
@@ -34,14 +36,16 @@ const navGroups = [
     label: 'الرئيسية',
     items: [
       { label: 'لوحة التحكم', href: '/dashboard', icon: LayoutDashboard },
-      { label: 'نقطة البيع (POS)', href: '/dashboard/pos', icon: ShoppingCart },
     ],
   },
   {
     label: 'المبيعات',
     items: [
+      { label: 'نقطة البيع (POS)', href: '/dashboard/pos', icon: ShoppingCart },
       { label: 'فواتير المبيعات', href: '/dashboard/sales', icon: Receipt },
+      { label: 'المرتجعات', href: '/dashboard/returns', icon: RotateCcw },
       { label: 'العملاء', href: '/dashboard/customers', icon: Users },
+      { label: 'الورديات', href: '/dashboard/shifts', icon: Clock },
     ],
   },
   {

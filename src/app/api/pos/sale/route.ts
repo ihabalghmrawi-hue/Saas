@@ -98,11 +98,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Update customer balance if credit sale
-    if (customer_id && due_amount > 0) {
+    // Update customer balance & log transaction
+    if (customer_id) {
       const { data: cust } = await supabase.from('customers').select('balance').eq('id', customer_id).single()
       if (cust) {
-        await supabase.from('customers').update({ balance: (cust.balance || 0) + due_amount }).eq('id', customer_id)
+        const newBalance = (cust.balance || 0) + due_amount
+        await supabase.from('customers').update({ balance: newBalance }).eq('id', customer_id)
+
+        // Record in ledger
+        await supabase.from('customer_transactions').insert({
+          company_id,
+          customer_id,
+          type: 'sale',
+          sale_id: sale.id,
+          amount: due_amount,
+          balance_after: newBalance,
+          notes: `فاتورة ${invoice_number}`,
+        })
       }
     }
 

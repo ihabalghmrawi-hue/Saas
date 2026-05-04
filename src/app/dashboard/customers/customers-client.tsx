@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Plus, Search, User, Edit, Trash2, Phone, Mail, X, Check, Loader2 } from 'lucide-react'
+import { Plus, Search, User, Edit, Trash2, Phone, Mail, X, Check, Loader2, Eye } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 import type { Customer } from '@/types/erp'
 
 interface CustomersClientProps {
@@ -131,6 +132,7 @@ export function CustomersClient({ customers: initial, companyId, currency }: Cus
                 </div>
               </div>
               <div className="flex gap-1">
+                <Link href={`/dashboard/customers/${customer.id}`} className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground hover:text-primary"><Eye className="w-3.5 h-3.5" /></Link>
                 <button onClick={() => openEdit(customer)} className="p-1.5 hover:bg-accent rounded-lg text-muted-foreground"><Edit className="w-3.5 h-3.5" /></button>
                 <button onClick={() => handleDelete(customer.id)} className="p-1.5 hover:bg-red-100 rounded-lg text-muted-foreground hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
