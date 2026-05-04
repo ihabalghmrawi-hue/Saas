@@ -6,7 +6,7 @@ import {
   LayoutDashboard, ShoppingCart, Package, ShoppingBag, Users, Truck,
   BarChart3, Settings, BookOpen, Wallet, Receipt, DollarSign, Tag,
   Warehouse, TrendingUp, RotateCcw, Clock, Shield, UserCog, LogOut,
-  Layers, Shirt, Calendar, CalendarDays,
+  Layers, Shirt, Calendar, CalendarDays, Trash2 as Trash2Icon, AlertOctagon,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import type { Features } from '@/lib/features'
@@ -109,11 +109,13 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
     {
       label: 'الإدارة',
       items: [
-        { label: 'الموظفون', href: '/dashboard/admin/staff', icon: UserCog, show: can(staff, 'admin.staff') },
-        { label: 'سجل الأحداث', href: '/dashboard/admin/audit', icon: Shield, show: can(staff, 'admin.audit') },
-        { label: 'الفئات', href: '/dashboard/categories', icon: Tag, show: can(staff, 'admin.settings') },
-        { label: 'الإعدادات', href: '/dashboard/settings', icon: Settings, show: can(staff, 'admin.settings') },
-        { label: 'النسخ الاحتياطية', href: '/dashboard/settings/backup', icon: Shield, show: can(staff, 'admin.settings') },
+        { label: 'الموظفون',         href: '/dashboard/admin/staff',        icon: UserCog,     show: can(staff, 'admin.staff') },
+        { label: 'سجل الأحداث',    href: '/dashboard/admin/audit',        icon: Shield,      show: can(staff, 'admin.audit') },
+        { label: 'الفئات',          href: '/dashboard/categories',         icon: Tag,         show: can(staff, 'admin.settings') },
+        { label: 'الإعدادات',       href: '/dashboard/settings',           icon: Settings,    show: can(staff, 'admin.settings') },
+        { label: 'النسخ الاحتياطية', href: '/dashboard/settings/backup',   icon: Shield,      show: can(staff, 'admin.settings') },
+        { label: 'سلة المحذوفات',   href: '/dashboard/settings/trash',    icon: Trash2Icon,  show: can(staff, 'admin.settings') },
+        { label: 'منطقة الخطر',     href: '/dashboard/settings/danger',   icon: AlertOctagon,show: can(staff, 'admin.settings') },
       ],
     },
   ]
