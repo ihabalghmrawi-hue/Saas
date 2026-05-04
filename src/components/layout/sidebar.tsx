@@ -6,8 +6,10 @@ import {
   LayoutDashboard, ShoppingCart, Package, ShoppingBag, Users, Truck,
   BarChart3, Settings, BookOpen, Wallet, Receipt, DollarSign, Tag,
   Warehouse, TrendingUp, RotateCcw, Clock, Shield, UserCog, LogOut,
+  Layers,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
+import type { Features } from '@/lib/features'
 import type { Company } from '@/types/database'
 
 interface StaffInfo {
@@ -20,15 +22,16 @@ interface SidebarProps {
   company: Company
   user: any
   staff?: StaffInfo
+  features: Features
 }
 
 function can(staff: StaffInfo | undefined, perm: string): boolean {
-  if (!staff) return true // no staff = admin mode (legacy)
+  if (!staff) return true
   if (staff.role === 'admin') return true
   return staff.permissions.includes(perm)
 }
 
-export function Sidebar({ company, user, staff }: SidebarProps) {
+export function Sidebar({ company, user, staff, features }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -54,16 +57,16 @@ export function Sidebar({ company, user, staff }: SidebarProps) {
       items: [
         { label: 'نقطة البيع', href: '/dashboard/pos', icon: ShoppingCart, show: can(staff, 'pos.access') },
         { label: 'فواتير المبيعات', href: '/dashboard/sales', icon: Receipt, show: can(staff, 'returns.view') },
-        { label: 'المرتجعات', href: '/dashboard/returns', icon: RotateCcw, show: can(staff, 'returns.view') },
+        { label: 'المرتجعات', href: '/dashboard/returns', icon: RotateCcw, show: features.showReturns && can(staff, 'returns.view') },
         { label: 'العملاء', href: '/dashboard/customers', icon: Users, show: can(staff, 'customers.view') },
-        { label: 'الورديات', href: '/dashboard/shifts', icon: Clock, show: can(staff, 'shifts.manage') },
+        { label: 'الورديات', href: '/dashboard/shifts', icon: Clock, show: features.showShifts && can(staff, 'shifts.manage') },
       ],
     },
     {
       label: 'المشتريات',
       items: [
-        { label: 'فواتير الشراء', href: '/dashboard/purchases', icon: ShoppingBag, show: can(staff, 'purchases.view') },
-        { label: 'الموردون', href: '/dashboard/suppliers', icon: Truck, show: can(staff, 'purchases.view') },
+        { label: 'فواتير الشراء', href: '/dashboard/purchases', icon: ShoppingBag, show: features.showPurchases && can(staff, 'purchases.view') },
+        { label: 'الموردون', href: '/dashboard/suppliers', icon: Truck, show: features.showPurchases && can(staff, 'purchases.view') },
       ],
     },
     {
@@ -71,6 +74,7 @@ export function Sidebar({ company, user, staff }: SidebarProps) {
       items: [
         { label: 'المنتجات', href: '/dashboard/inventory', icon: Package, show: can(staff, 'inventory.view') },
         { label: 'حركة المخزون', href: '/dashboard/inventory/movements', icon: Warehouse, show: can(staff, 'inventory.view') },
+        { label: 'المتغيرات', href: '/dashboard/inventory/variants', icon: Layers, show: features.hasVariants && can(staff, 'inventory.view') },
       ],
     },
     {
@@ -115,7 +119,10 @@ export function Sidebar({ company, user, staff }: SidebarProps) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm text-foreground truncate">{company?.name || 'شركتي'}</p>
-            <p className="text-xs text-muted-foreground">{company?.currency || 'SAR'} · نظام ERP</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <span>{features.icon}</span>
+              <span>{features.label}</span>
+            </p>
           </div>
         </div>
       </div>

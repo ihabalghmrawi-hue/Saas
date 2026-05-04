@@ -1,5 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { InventoryClient } from './inventory-client'
+import { headers } from 'next/headers'
+import { getFeatures } from '@/lib/features'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,6 +9,8 @@ const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 
 export default async function InventoryPage() {
   const supabase = createClient()
+  const businessType = headers().get('x-business-type') || 'retail'
+  const features = getFeatures(businessType)
 
   const [{ data: products }, { data: categories }, { data: units }, { data: warehouses }] = await Promise.all([
     supabase
@@ -27,6 +31,7 @@ export default async function InventoryPage() {
       warehouses={warehouses || []}
       companyId={COMPANY_ID}
       currency={process.env.NEXT_PUBLIC_CURRENCY || 'SAR'}
+      features={features}
     />
   )
 }

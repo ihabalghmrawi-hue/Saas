@@ -4,20 +4,24 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, Bell, Shield, Database, Loader2, CheckCircle, Moon, Sun, Globe, DollarSign } from 'lucide-react'
+import { Building2, Bell, Shield, Database, Loader2, CheckCircle, Moon, Sun, Globe, DollarSign, Store } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { BUSINESS_TYPES, getFeatures, type BusinessType } from '@/lib/features'
 import type { Company } from '@/types/database'
 
 interface SettingsClientProps {
   company: Company
   user: any
   role: string
+  currentBusinessType?: string
 }
 
-export function SettingsClient({ company, user, role }: SettingsClientProps) {
+export function SettingsClient({ company, user, role, currentBusinessType }: SettingsClientProps) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [activeSection, setActiveSection] = useState('general')
+  const [selectedBizType, setSelectedBizType] = useState<BusinessType>((currentBusinessType as BusinessType) || 'retail')
+  const [savingBizType, setSavingBizType] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -75,7 +79,19 @@ export function SettingsClient({ company, user, role }: SettingsClientProps) {
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const saveBizType = async () => {
+    setSavingBizType(true)
+    await fetch('/api/onboarding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ business_type: selectedBizType }),
+    })
+    setSavingBizType(false)
+    router.refresh()
+  }
+
   const sections = [
+    { key: 'business', label: 'نوع النشاط', icon: Store },
     { key: 'general', label: 'إعدادات عامة', icon: Building2 },
     { key: 'preferences', label: 'التفضيلات', icon: Globe },
     { key: 'notifications', label: 'الإشعارات', icon: Bell },
@@ -114,6 +130,35 @@ export function SettingsClient({ company, user, role }: SettingsClientProps) {
             <div className="mb-4 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 text-sm p-3 rounded-lg border border-emerald-200">
               <CheckCircle className="w-4 h-4" />
               تم حفظ الإعدادات بنجاح!
+            </div>
+          )}
+
+          {/* Business Type */}
+          {activeSection === 'business' && (
+            <div className="space-y-5">
+              <h3 className="font-semibold text-foreground">نوع النشاط التجاري</h3>
+              <p className="text-sm text-muted-foreground">تغيير نوع نشاطك سيؤثر على الميزات والأدوات المتاحة في النظام</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {BUSINESS_TYPES.map((type) => {
+                  const f = getFeatures(type)
+                  const isSelected = selectedBizType === type
+                  return (
+                    <button key={type} onClick={() => setSelectedBizType(type)}
+                      className={cn(
+                        'flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 text-center transition-all',
+                        isSelected ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/40'
+                      )}>
+                      <span className="text-2xl">{f.icon}</span>
+                      <span className="text-xs font-medium">{f.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <button onClick={saveBizType} disabled={savingBizType}
+                className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+                {savingBizType ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                حفظ نوع النشاط
+              </button>
             </div>
           )}
 

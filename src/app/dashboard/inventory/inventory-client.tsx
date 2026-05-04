@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import type { Features } from '@/lib/features'
 import type { Product, ProductCategory, Unit, Warehouse } from '@/types/erp'
 
 interface InventoryClientProps {
@@ -16,6 +17,7 @@ interface InventoryClientProps {
   warehouses: any[]
   companyId: string
   currency: string
+  features: Features
 }
 
 const emptyProduct = {
@@ -25,9 +27,10 @@ const emptyProduct = {
   category_id: '', unit_id: '',
   type: 'product', track_inventory: true, is_active: true,
   description: '',
+  expiry_date: '', batch_number: '', min_qty: '1',
 }
 
-export function InventoryClient({ products: initialProducts, categories, units, warehouses, companyId, currency }: InventoryClientProps) {
+export function InventoryClient({ products: initialProducts, categories, units, warehouses, companyId, currency, features }: InventoryClientProps) {
   const [products, setProducts] = useState(initialProducts)
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
@@ -113,6 +116,9 @@ export function InventoryClient({ products: initialProducts, categories, units, 
         track_inventory: form.track_inventory,
         is_active: form.is_active,
         description: form.description || null,
+        expiry_date: features.hasExpiry && form.expiry_date ? form.expiry_date : null,
+        batch_number: features.hasBatch && form.batch_number ? form.batch_number : null,
+        min_qty: features.hasMinQty ? parseInt(form.min_qty) || 1 : 1,
       }
 
       const url = editingProduct ? `/api/inventory/products/${editingProduct.id}` : '/api/inventory/products'
@@ -202,6 +208,7 @@ export function InventoryClient({ products: initialProducts, categories, units, 
               <tr>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">المنتج</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">الفئة</th>
+                {features.hasExpiry && <th className="text-right px-4 py-3 font-medium text-muted-foreground">الانتهاء</th>}
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">سعر التكلفة</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">سعر البيع</th>
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground">المخزون</th>
@@ -233,6 +240,20 @@ export function InventoryClient({ products: initialProducts, categories, units, 
                           </span>
                         )}
                       </td>
+                      {features.hasExpiry && (
+                        <td className="px-4 py-3 text-xs">
+                          {product.expiry_date ? (
+                            <span className={cn(
+                              'font-medium',
+                              new Date(product.expiry_date) < new Date() ? 'text-red-500' :
+                              new Date(product.expiry_date) < new Date(Date.now() + 30*24*60*60*1000) ? 'text-amber-500' :
+                              'text-muted-foreground'
+                            )}>
+                              {new Date(product.expiry_date).toLocaleDateString('ar-SA')}
+                            </span>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-muted-foreground">{formatCurrency(product.cost_price, currency)}</td>
                       <td className="px-4 py-3 font-medium text-primary">{formatCurrency(product.sale_price, currency)}</td>
                       <td className="px-4 py-3">
@@ -329,6 +350,29 @@ export function InventoryClient({ products: initialProducts, categories, units, 
                   <label className="text-sm font-medium mb-1 block">نسبة الضريبة %</label>
                   <input type="number" step="0.01" value={form.tax_rate} onChange={e => setForm((f: any) => ({ ...f, tax_rate: e.target.value }))} placeholder="0" className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
                 </div>
+
+                {/* Pharmacy: expiry + batch */}
+                {features.hasExpiry && (
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">💊 تاريخ الانتهاء</label>
+                    <input type="date" value={form.expiry_date} onChange={e => setForm((f: any) => ({ ...f, expiry_date: e.target.value }))} className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                )}
+                {features.hasBatch && (
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">رقم الدُفعة (Batch)</label>
+                    <input type="text" value={form.batch_number} onChange={e => setForm((f: any) => ({ ...f, batch_number: e.target.value }))} placeholder="BATCH-001" className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" dir="ltr" />
+                  </div>
+                )}
+
+                {/* Wholesale: min order qty */}
+                {features.hasMinQty && (
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">📦 الحد الأدنى للطلب</label>
+                    <input type="number" min="1" value={form.min_qty} onChange={e => setForm((f: any) => ({ ...f, min_qty: e.target.value }))} placeholder="1" className="w-full border border-input rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                )}
+
                 <div className="flex items-center gap-4 pt-4">
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={form.track_inventory} onChange={e => setForm((f: any) => ({ ...f, track_inventory: e.target.checked }))} className="w-4 h-4 accent-primary" />

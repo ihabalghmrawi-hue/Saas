@@ -1,6 +1,7 @@
 import { Sidebar } from '@/components/layout/sidebar'
 import { TopBar } from '@/components/layout/topbar'
 import { headers } from 'next/headers'
+import { getFeatures } from '@/lib/features'
 
 const defaultCompany = {
   id: 'default',
@@ -27,14 +28,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const staffName = h.get('x-staff-name') || 'المدير'
   const staffRole = h.get('x-staff-role') || 'admin'
   const staffPermissions = (h.get('x-staff-permissions') || '').split(',').filter(Boolean)
+  const businessType = h.get('x-business-type') || 'retail'
 
   const staff = { name: staffName, role: staffRole, permissions: staffPermissions }
+  const features = getFeatures(businessType)
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar company={defaultCompany as any} user={null} staff={staff} />
+      <Sidebar company={defaultCompany as any} user={null} staff={staff} features={features} />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar company={defaultCompany} user={null} staff={staff} />
+        <TopBar company={defaultCompany} user={null} staff={staff} features={features} />
         <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>

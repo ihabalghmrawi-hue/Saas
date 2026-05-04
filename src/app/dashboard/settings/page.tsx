@@ -1,4 +1,5 @@
 import { SettingsClient } from './settings-client'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,11 +24,13 @@ const defaultCompany = {
 }
 
 export default function SettingsPage() {
+  const businessType = headers().get('x-business-type') || 'retail'
   return (
     <SettingsClient
       company={defaultCompany as any}
       user={null as any}
       role="owner"
+      currentBusinessType={businessType}
     />
   )
 }
