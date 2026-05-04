@@ -7,6 +7,7 @@ import {
   BarChart3, Settings, BookOpen, Wallet, Receipt, DollarSign, Tag,
   Warehouse, TrendingUp, RotateCcw, Clock, Shield, UserCog, LogOut,
   Layers, Shirt, Calendar, CalendarDays, Trash2 as Trash2Icon, AlertOctagon,
+  CreditCard,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import type { Features } from '@/lib/features'
@@ -116,6 +117,7 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
         { label: 'النسخ الاحتياطية', href: '/dashboard/settings/backup',   icon: Shield,      show: can(staff, 'admin.settings') },
         { label: 'سلة المحذوفات',   href: '/dashboard/settings/trash',    icon: Trash2Icon,  show: can(staff, 'admin.settings') },
         { label: 'منطقة الخطر',     href: '/dashboard/settings/danger',   icon: AlertOctagon,show: can(staff, 'admin.settings') },
+        { label: 'الاشتراك والفوترة', href: '/dashboard/billing',           icon: CreditCard,  show: staff?.role === 'admin' || !staff },
       ],
     },
   ]
