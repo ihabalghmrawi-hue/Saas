@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, Bell, Shield, Database, Loader2, CheckCircle, Moon, Sun, Globe, DollarSign, Store } from 'lucide-react'
+import { Building2, Bell, Shield, Database, Loader2, CheckCircle, Moon, Sun, Globe, DollarSign, Store, Palette } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BUSINESS_TYPES, getFeatures, type BusinessType } from '@/lib/features'
+import { BrandingSettings } from '@/components/branding-settings'
 import type { Company } from '@/types/database'
 
 interface SettingsClientProps {
@@ -14,9 +15,10 @@ interface SettingsClientProps {
   user: any
   role: string
   currentBusinessType?: string
+  branding?: any
 }
 
-export function SettingsClient({ company, user, role, currentBusinessType }: SettingsClientProps) {
+export function SettingsClient({ company, user, role, currentBusinessType, branding }: SettingsClientProps) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [activeSection, setActiveSection] = useState('general')
@@ -105,6 +107,7 @@ export function SettingsClient({ company, user, role, currentBusinessType }: Set
   }
 
   const sections = [
+    { key: 'branding', label: 'الهوية البصرية', icon: Palette },
     { key: 'business', label: 'نوع النشاط', icon: Store },
     { key: 'general', label: 'إعدادات عامة', icon: Building2 },
     { key: 'preferences', label: 'التفضيلات', icon: Globe },
@@ -144,6 +147,14 @@ export function SettingsClient({ company, user, role, currentBusinessType }: Set
             <div className="mb-4 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 text-sm p-3 rounded-lg border border-emerald-200">
               <CheckCircle className="w-4 h-4" />
               تم حفظ الإعدادات بنجاح!
+            </div>
+          )}
+
+          {/* Branding */}
+          {activeSection === 'branding' && (
+            <div className="space-y-1">
+              <h3 className="font-semibold text-foreground mb-4">الهوية البصرية</h3>
+              <BrandingSettings initialData={branding} />
             </div>
           )}
 

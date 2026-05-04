@@ -1,5 +1,6 @@
 import { SettingsClient } from './settings-client'
 import { headers } from 'next/headers'
+import { getBranding } from '@/lib/branding'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,14 +24,17 @@ const defaultCompany = {
   settings: null,
 }
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
   const businessType = headers().get('x-business-type') || 'retail'
+  const branding = await getBranding()
+
   return (
     <SettingsClient
       company={defaultCompany as any}
       user={null as any}
       role="owner"
       currentBusinessType={businessType}
+      branding={branding}
     />
   )
 }

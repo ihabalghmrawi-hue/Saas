@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import type { Features } from '@/lib/features'
+import type { Branding } from '@/lib/branding'
 import type { Company } from '@/types/database'
 
 interface StaffInfo {
@@ -23,6 +24,7 @@ interface SidebarProps {
   user: any
   staff?: StaffInfo
   features: Features
+  branding?: Branding
 }
 
 function can(staff: StaffInfo | undefined, perm: string): boolean {
@@ -31,7 +33,7 @@ function can(staff: StaffInfo | undefined, perm: string): boolean {
   return staff.permissions.includes(perm)
 }
 
-export function Sidebar({ company, user, staff, features }: SidebarProps) {
+export function Sidebar({ company, user, staff, features, branding }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
 
@@ -114,11 +116,15 @@ export function Sidebar({ company, user, staff, features }: SidebarProps) {
       {/* Company Header */}
       <div className="p-4 border-b bg-primary/5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
-            {getInitials(company?.name || 'ش')}
-          </div>
+          {branding?.logo_url ? (
+            <img src={branding.logo_url} alt="logo" className="w-9 h-9 rounded-xl object-contain bg-white p-0.5 shadow-sm shrink-0" />
+          ) : (
+            <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm shrink-0">
+              {getInitials(branding?.name_ar || company?.name || 'ش')}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-foreground truncate">{company?.name || 'شركتي'}</p>
+            <p className="font-semibold text-sm text-foreground truncate">{branding?.name_ar || company?.name || 'شركتي'}</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <span>{features.icon}</span>
               <span>{features.label}</span>

@@ -3,6 +3,7 @@ import { Cairo } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/layout/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
+import { getBranding, buildThemeCss } from '@/lib/branding'
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -12,27 +13,24 @@ const cairo = Cairo({
 
 export const metadata: Metadata = {
   title: {
-    default: 'القسم المالي - إدارة مالية ذكية',
-    template: '%s | القسم المالي',
+    default: 'نظام ERP',
+    template: '%s | ERP',
   },
-  description: 'نظام إدارة مالية متكامل للشركات والمؤسسات',
-  keywords: ['محاسبة', 'إدارة مالية', 'فواتير', 'تقارير'],
+  description: 'نظام إدارة متكامل للأعمال التجارية',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const branding = await getBranding()
+  const themeCss = buildThemeCss(branding)
+
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: themeCss }} />
+        {branding.logo_url && <link rel="icon" href={branding.logo_url} />}
+      </head>
       <body className={`${cairo.variable} font-sans antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
           {children}
           <Toaster />
         </ThemeProvider>
