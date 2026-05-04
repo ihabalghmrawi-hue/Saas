@@ -54,13 +54,16 @@ export default async function ProfitLossPage() {
     expenseByCategory[key].amount += e.amount
   })
 
+  const revenue = sales?.reduce((s, sale) => s + sale.total, 0) || 0
+  const cogs = purchases?.reduce((s, p) => s + p.total, 0) || 0
+  const expensesTotal = expenses?.reduce((s, e) => s + e.amount, 0) || 0
   const totals = {
-    revenue: sales?.reduce((s, sale) => s + sale.total, 0) || 0,
-    cogs: purchases?.reduce((s, p) => s + p.total, 0) || 0,
-    expenses: expenses?.reduce((s, e) => s + e.amount, 0) || 0,
+    revenue,
+    cogs,
+    expenses: expensesTotal,
+    grossProfit: revenue - cogs,
+    netProfit: revenue - cogs - expensesTotal,
   }
-  totals.grossProfit = totals.revenue - totals.cogs
-  totals.netProfit = totals.grossProfit - totals.expenses
 
   return (
     <ProfitLossClient
