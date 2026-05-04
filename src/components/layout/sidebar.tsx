@@ -103,6 +103,7 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
         { label: 'الحجوزات', href: '/dashboard/rentals/bookings', icon: CalendarDays, show: features.hasRental },
         { label: 'تقويم التأجير', href: '/dashboard/rentals/calendar', icon: CalendarDays, show: features.hasRental },
         { label: 'الإرجاعات', href: '/dashboard/rentals/returns', icon: RotateCcw, show: features.hasRental },
+        { label: 'قواعد التسعير', href: '/dashboard/rentals/pricing', icon: Tag, show: features.hasRental },
       ],
     },
     {
