@@ -79,6 +79,8 @@ export function SettingsClient({ company, user, role, currentBusinessType }: Set
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const [resetting, setResetting] = useState(false)
+
   const saveBizType = async () => {
     setSavingBizType(true)
     await fetch('/api/onboarding', {
@@ -87,6 +89,18 @@ export function SettingsClient({ company, user, role, currentBusinessType }: Set
       body: JSON.stringify({ business_type: selectedBizType }),
     })
     setSavingBizType(false)
+    router.refresh()
+  }
+
+  const resetToTemplate = async () => {
+    if (!confirm('سيتم مسح جميع المنتجات والفئات الحالية وإعادة التهيئة. هل أنت متأكد؟')) return
+    setResetting(true)
+    await fetch('/api/onboarding/seed', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ business_type: selectedBizType, reset: true }),
+    })
+    setResetting(false)
     router.refresh()
   }
 
@@ -154,11 +168,18 @@ export function SettingsClient({ company, user, role, currentBusinessType }: Set
                   )
                 })}
               </div>
-              <button onClick={saveBizType} disabled={savingBizType}
-                className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
-                {savingBizType ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                حفظ نوع النشاط
-              </button>
+              <div className="flex gap-3">
+                <button onClick={saveBizType} disabled={savingBizType}
+                  className="bg-primary text-primary-foreground px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2">
+                  {savingBizType ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  حفظ نوع النشاط
+                </button>
+                <button onClick={resetToTemplate} disabled={resetting}
+                  className="px-4 py-2.5 border border-amber-300 text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-400 rounded-lg text-sm font-medium hover:bg-amber-100 disabled:opacity-50 flex items-center gap-2">
+                  {resetting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  إعادة ضبط البيانات
+                </button>
+              </div>
             </div>
           )}
 

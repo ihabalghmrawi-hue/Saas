@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Loader2, Sparkles } from 'lucide-react'
 import { BusinessType, BUSINESS_TYPES, getFeatures } from '@/lib/features'
 import { cn } from '@/lib/utils'
 
@@ -16,20 +16,93 @@ const DESCRIPTIONS: Record<BusinessType, string> = {
   other:      'إعداد عام مناسب لأي نشاط تجاري',
 }
 
+type Step = 'select' | 'loading' | 'done'
+
+const LOADING_STEPS = [
+  'جاري إعداد النظام...',
+  'إنشاء التصنيفات...',
+  'إضافة المنتجات التجريبية...',
+  'تهيئة نقطة البيع...',
+  'اكتمل الإعداد! 🎉',
+]
+
 export default function OnboardingPage() {
   const router = useRouter()
   const [selected, setSelected] = useState<BusinessType | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [step, setStep] = useState<Step>('select')
+  const [loadingStep, setLoadingStep] = useState(0)
 
   const handleConfirm = async () => {
     if (!selected) return
-    setLoading(true)
+    setStep('loading')
+
+    // Save business type
     await fetch('/api/onboarding', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ business_type: selected }),
     })
+
+    // Animate loading steps while seeding
+    const animate = async () => {
+      for (let i = 0; i < LOADING_STEPS.length - 1; i++) {
+        setLoadingStep(i)
+        await new Promise(r => setTimeout(r, 600))
+      }
+    }
+
+    const [seedResult] = await Promise.all([
+      fetch('/api/onboarding/seed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ business_type: selected }),
+      }),
+      animate(),
+    ])
+
+    setLoadingStep(LOADING_STEPS.length - 1)
+    setStep('done')
+    await new Promise(r => setTimeout(r, 900))
     router.replace('/dashboard')
+  }
+
+  if (step === 'loading' || step === 'done') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-background flex items-center justify-center p-6" dir="rtl">
+        <div className="w-full max-w-sm text-center space-y-8">
+          <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mx-auto">
+            <span className="text-4xl">{selected ? getFeatures(selected).icon : '🏪'}</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground mb-2">
+              {step === 'done' ? 'اكتمل الإعداد!' : 'جاري تهيئة النظام'}
+            </h2>
+            <p className="text-muted-foreground text-sm">{selected ? getFeatures(selected).label : ''}</p>
+          </div>
+          <div className="space-y-3">
+            {LOADING_STEPS.map((label, i) => (
+              <div key={i} className={cn(
+                'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-all',
+                i < loadingStep ? 'text-muted-foreground' :
+                i === loadingStep ? 'bg-primary/10 text-primary font-medium' :
+                'text-muted-foreground/40'
+              )}>
+                {i < loadingStep ? (
+                  <Check className="w-4 h-4 text-green-500 shrink-0" />
+                ) : i === loadingStep ? (
+                  step === 'done' && i === LOADING_STEPS.length - 1
+                    ? <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    : <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                ) : (
+                  <div className="w-4 h-4 shrink-0" />
+                )}
+                {label}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -38,7 +111,9 @@ export default function OnboardingPage() {
         <div className="text-center mb-10">
           <div className="text-5xl mb-4">🏪</div>
           <h1 className="text-3xl font-bold text-foreground">مرحباً بك في نظام ERP</h1>
-          <p className="text-muted-foreground mt-2 text-base">اختر نوع نشاطك التجاري لتخصيص النظام تلقائياً</p>
+          <p className="text-muted-foreground mt-2 text-sm">
+            اختر نوع نشاطك — سيتم إعداد النظام تلقائياً بفئات ومنتجات جاهزة
+          </p>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
@@ -70,43 +145,48 @@ export default function OnboardingPage() {
         </div>
 
         {selected && (
-          <div className="bg-card border rounded-2xl p-4 mb-6 text-sm">
-            <p className="font-medium text-foreground mb-2">✅ سيتم تفعيل تلقائياً لـ <strong>{getFeatures(selected).label}</strong>:</p>
-            <div className="flex flex-wrap gap-2 mt-1">
+          <div className="bg-card border rounded-2xl p-4 mb-5 text-sm">
+            <p className="font-medium text-foreground mb-2 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-primary" />
+              سيتم إعداده تلقائياً لـ <strong>{getFeatures(selected).label}</strong>:
+            </p>
+            <div className="flex flex-wrap gap-2">
               {getFeatures(selected).hasExpiry && <Tag>تتبع انتهاء الصلاحية</Tag>}
               {getFeatures(selected).hasBatch && <Tag>إدارة الدُفعات</Tag>}
-              {getFeatures(selected).hasVariants && <Tag>متغيرات المنتج (مقاس / لون)</Tag>}
+              {getFeatures(selected).hasVariants && <Tag>متغيرات (مقاس / لون)</Tag>}
               {getFeatures(selected).hasBulkPricing && <Tag>أسعار الجملة</Tag>}
-              {getFeatures(selected).hasMinQty && <Tag>الحد الأدنى للكمية</Tag>}
-              {getFeatures(selected).fastPOS && <Tag>نقطة بيع سريعة</Tag>}
-              {getFeatures(selected).barcodeFirst && <Tag>باركود أولاً</Tag>}
+              {getFeatures(selected).hasMinQty && <Tag>الحد الأدنى للطلب</Tag>}
+              {getFeatures(selected).fastPOS && <Tag>POS سريع</Tag>}
               {getFeatures(selected).showReturns && <Tag>المرتجعات</Tag>}
               {getFeatures(selected).showShifts && <Tag>الورديات</Tag>}
-              {getFeatures(selected).medicineCategories && <Tag>تصنيفات الأدوية</Tag>}
+              <Tag variant="green">فئات جاهزة</Tag>
+              <Tag variant="green">منتجات تجريبية</Tag>
             </div>
           </div>
         )}
 
         <button
           onClick={handleConfirm}
-          disabled={!selected || loading}
+          disabled={!selected}
           className="w-full bg-primary text-primary-foreground py-3.5 rounded-2xl font-bold text-base hover:bg-primary/90 disabled:opacity-40 flex items-center justify-center gap-2 transition-all"
         >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-          {loading ? 'جاري الإعداد...' : 'ابدأ الآن →'}
+          ابدأ الآن ←
         </button>
 
         <p className="text-center text-xs text-muted-foreground mt-4">
-          يمكنك تغيير نوع النشاط لاحقاً من الإعدادات
+          يمكنك تغيير نوع النشاط وإعادة الضبط لاحقاً من الإعدادات
         </p>
       </div>
     </div>
   )
 }
 
-function Tag({ children }: { children: React.ReactNode }) {
+function Tag({ children, variant = 'blue' }: { children: React.ReactNode; variant?: 'blue' | 'green' }) {
   return (
-    <span className="bg-primary/10 text-primary text-xs px-2.5 py-1 rounded-full font-medium">
+    <span className={cn(
+      'text-xs px-2.5 py-1 rounded-full font-medium',
+      variant === 'green' ? 'bg-green-100 text-green-700 dark:bg-green-900/30' : 'bg-primary/10 text-primary'
+    )}>
       {children}
     </span>
   )
