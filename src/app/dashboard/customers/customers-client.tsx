@@ -29,7 +29,7 @@ export function CustomersClient({ customers: initial, companyId, currency }: Cus
   const filtered = useMemo(() =>
     customers.filter(c =>
       !search ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
       (c.phone && c.phone.includes(search)) ||
       (c.email && c.email.toLowerCase().includes(search.toLowerCase()))
     ), [customers, search])

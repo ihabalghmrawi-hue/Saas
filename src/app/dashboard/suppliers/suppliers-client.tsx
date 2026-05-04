@@ -18,7 +18,7 @@ export function SuppliersClient({ suppliers: initial, companyId, currency }: Sup
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const filtered = useMemo(() => suppliers.filter(s => !search || s.name.toLowerCase().includes(search.toLowerCase()) || (s.phone && s.phone.includes(search))), [suppliers, search])
+  const filtered = useMemo(() => suppliers.filter(s => !search || (s.name || '').toLowerCase().includes(search.toLowerCase()) || (s.phone && s.phone.includes(search))), [suppliers, search])
   const totalDebt = suppliers.reduce((s, sup) => s + Math.max(0, sup.balance), 0)
 
   const openNew = () => { setForm(emptyForm); setEditingId(null); setShowForm(true); setError('') }

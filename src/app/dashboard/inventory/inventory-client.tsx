@@ -42,7 +42,7 @@ export function InventoryClient({ products: initialProducts, categories, units, 
   const filtered = useMemo(() => {
     return products.filter(p => {
       const matchSearch = !search ||
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
         (p.name_ar && p.name_ar.includes(search)) ||
         (p.barcode && p.barcode.includes(search)) ||
         (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
@@ -53,11 +53,12 @@ export function InventoryClient({ products: initialProducts, categories, units, 
     })
   }, [products, search, filterCategory, filterLowStock])
 
-  const getTotalStock = (product: Product) => {
-    return (product.inventory as any[])?.reduce((s: number, i: any) => s + Number(i.quantity), 0) || 0
+  const getTotalStock = (product: any) => {
+    if (!Array.isArray(product?.inventory)) return 0
+    return product.inventory.reduce((s: number, i: any) => s + Number(i?.quantity || 0), 0)
   }
 
-  const lowStockCount = products.filter(p => p.track_inventory && getTotalStock(p) <= p.min_stock_level && getTotalStock(p) >= 0).length
+  const lowStockCount = products.filter(p => p.track_inventory && getTotalStock(p) <= Number(p.min_stock_level || 0)).length
 
   const openNew = () => {
     setForm(emptyProduct)
@@ -165,7 +166,7 @@ export function InventoryClient({ products: initialProducts, categories, units, 
           { label: 'إجمالي المنتجات', value: products.length, color: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20' },
           { label: 'منتجات نشطة', value: products.filter(p => p.is_active).length, color: 'bg-green-50 text-green-600 dark:bg-green-900/20' },
           { label: 'منخفض المخزون', value: lowStockCount, color: 'bg-red-50 text-red-600 dark:bg-red-900/20' },
-          { label: 'قيمة المخزون', value: formatCurrency(products.reduce((s, p) => s + getTotalStock(p) * p.cost_price, 0), currency), color: 'bg-purple-50 text-purple-600 dark:bg-purple-900/20', isText: true },
+          { label: 'قيمة المخزون', value: formatCurrency(products.reduce((s, p) => s + getTotalStock(p) * Number(p.cost_price || 0), 0), currency), color: 'bg-purple-50 text-purple-600 dark:bg-purple-900/20', isText: true },
         ].map((stat, i) => (
           <div key={i} className={cn('rounded-xl p-3', stat.color)}>
             <p className="text-xs opacity-70">{stat.label}</p>

@@ -48,7 +48,7 @@ export function POSClient({ products, categories, customers, warehouses, default
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
       const matchSearch = !search ||
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.name || '').toLowerCase().includes(search.toLowerCase()) ||
         (p.name_ar && p.name_ar.includes(search)) ||
         (p.barcode && p.barcode.includes(search)) ||
         (p.sku && p.sku.toLowerCase().includes(search.toLowerCase()))
@@ -60,7 +60,7 @@ export function POSClient({ products, categories, customers, warehouses, default
   const filteredCustomers = useMemo(() =>
     customers.filter(c =>
       !customerSearch ||
-      c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+      (c.name || '').toLowerCase().includes(customerSearch.toLowerCase()) ||
       (c.phone && c.phone.includes(customerSearch))
     ), [customers, customerSearch])
 

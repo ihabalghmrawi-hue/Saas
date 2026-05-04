@@ -21,7 +21,7 @@ export function ExpensesClient({ expenses: initial, categories, companyId, curre
   const [error, setError] = useState('')
 
   const filtered = useMemo(() => expenses.filter(e => {
-    const matchSearch = !search || e.description.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = !search || (e.description || '').toLowerCase().includes(search.toLowerCase())
     const matchCat = !filterCategory || e.category_id === filterCategory
     return matchSearch && matchCat
   }), [expenses, search, filterCategory])
