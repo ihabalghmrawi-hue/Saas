@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
   try {
@@ -117,6 +118,13 @@ export async function POST(req: NextRequest) {
         })
       }
     }
+
+    await logAudit({
+      action: 'sale.created',
+      entityType: 'sale',
+      entityId: sale.id,
+      newValue: { invoice_number, total, customer_id, payment_method },
+    })
 
     return NextResponse.json({ success: true, invoice_number, sale_id: sale.id })
   } catch (error: any) {

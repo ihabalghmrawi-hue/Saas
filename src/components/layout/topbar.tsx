@@ -18,9 +18,10 @@ const pageTitles: Record<string, string> = {
 interface TopBarProps {
   company: any
   user: any
+  staff?: { name: string; role: string; permissions: string[] }
 }
 
-export function TopBar({ company, user }: TopBarProps) {
+export function TopBar({ company, user, staff }: TopBarProps) {
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
   

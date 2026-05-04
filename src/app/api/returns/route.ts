@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { logAudit } from '@/lib/audit'
 
 const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 
@@ -128,6 +129,13 @@ export async function POST(req: NextRequest) {
     await supabase.from('sales')
       .update({ status: 'returned', payment_status: 'refunded' })
       .eq('id', sale_id)
+
+    await logAudit({
+      action: 'return.created',
+      entityType: 'return',
+      entityId: ret.id,
+      newValue: { return_number, sale_id, total, refund_method },
+    })
 
     return NextResponse.json({ success: true, return_number, return_id: ret.id })
   } catch (e: any) {
