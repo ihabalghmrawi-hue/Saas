@@ -33,8 +33,21 @@ CREATE TABLE IF NOT EXISTS permissions (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   key         TEXT UNIQUE NOT NULL,
   label       TEXT,
-  group_name  TEXT   -- e.g. 'sales', 'inventory', 'reports'
+  group_name  TEXT
 );
+-- Add missing columns if table existed with old schema
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS key        TEXT;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS label      TEXT;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS group_name TEXT;
+-- Ensure key is unique and not null (may fail silently if already set)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'permissions_key_key'
+  ) THEN
+    ALTER TABLE permissions ADD CONSTRAINT permissions_key_key UNIQUE (key);
+  END IF;
+END $$;
 
 ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "allow_all_permissions" ON permissions;
