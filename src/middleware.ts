@@ -4,25 +4,21 @@ import { verifySession, SESSION_COOKIE } from '@/lib/session'
 import { canAccessRoute } from '@/lib/permissions'
 import { BUSINESS_TYPE_COOKIE } from '@/lib/features'
 
-// Routes that bypass auth entirely
+// These paths never need auth checks
 const PUBLIC_PATHS = [
-  '/staff-login',
-  '/api/auth',
-  '/api/billing/webhook',
-  '/onboarding',
-  '/api/onboarding',
-  '/auth',
-  '/pricing',
-  '/auth/incomplete',
+  '/auth',            // login, signup, callback
+  '/staff-login',     // PIN-based staff entry
+  '/onboarding',      // post-signup setup
+  '/pricing',         // public pricing page
+  '/api/auth',        // auth API helpers
+  '/api/onboarding',  // onboarding API
+  '/api/billing/webhook', // Stripe webhook (has its own signature check)
 ]
-
-// Paths that require Supabase Auth (owner billing management)
-const SUPABASE_ONLY_PATHS = ['/dashboard/billing', '/api/billing']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Always pass public paths through
+  // 1. Always pass public paths through
   if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
     return NextResponse.next()
   }
@@ -32,42 +28,39 @@ export async function middleware(request: NextRequest) {
 
   if (!isDashboard && !isAPI) return NextResponse.next()
 
-  // ── 1. Try Supabase Auth session (tenant owner) ──────────────────────────
-  const cookieResponse = NextResponse.next({ request: { headers: request.headers } })
+  // 2. Try Supabase Auth (SaaS owner / admin)
+  const supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return request.cookies.getAll() },
-        setAll(toSet: { name: string; value: string; options?: any }[]) {
+        getAll: () => request.cookies.getAll(),
+        setAll: (toSet: { name: string; value: string; options?: any }[]) => {
           toSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value)
-            cookieResponse.cookies.set(name, value, options as any)
+            supabaseResponse.cookies.set(name, value, options)
           })
         },
       },
     },
   )
 
-  // Use getSession (no network call) for speed — getUser() verifies signature but is slower
-  const { data: { session } } = await supabase.auth.getSession()
-  const sbUser = session?.user ?? null
+  const { data: { user: sbUser } } = await supabase.auth.getUser()
 
   if (sbUser) {
-    // Look up membership — requires the SELECT policy on memberships table
-    const { data: membership, error: membershipError } = await supabase
+    // Lookup membership
+    const { data: membership } = await supabase
       .from('memberships')
       .select('company_id, role')
       .eq('user_id', sbUser.id)
       .eq('is_active', true)
-      .maybeSingle()   // maybeSingle() returns null (not error) when 0 rows
+      .maybeSingle()
 
     if (membership?.company_id) {
       const tenantId = membership.company_id
 
-      // Load business type (from settings or cookie)
       const { data: settings } = await supabase
         .from('company_settings')
         .select('business_type')
@@ -78,56 +71,46 @@ export async function middleware(request: NextRequest) {
         || request.cookies.get(BUSINESS_TYPE_COOKIE)?.value
         || 'retail'
 
+      // Forward headers to server components via request headers
       const reqHeaders = new Headers(request.headers)
       reqHeaders.set('x-tenant-id',        tenantId)
       reqHeaders.set('x-staff-id',          sbUser.id)
       reqHeaders.set('x-staff-name',        sbUser.email || sbUser.id)
-      reqHeaders.set('x-staff-role',        membership.role || 'admin')
+      reqHeaders.set('x-staff-role',        membership.role || 'owner')
       reqHeaders.set('x-staff-permissions', '*')
       reqHeaders.set('x-business-type',     businessType)
 
       const res = NextResponse.next({ request: { headers: reqHeaders } })
-      // Also set on response for any code that reads response headers
-      reqHeaders.forEach((val, key) => { if (key.startsWith('x-')) res.headers.set(key, val) })
-      cookieResponse.cookies.getAll().forEach(c => res.cookies.set(c.name, c.value))
+      // Copy Supabase cookie refreshes
+      supabaseResponse.cookies.getAll().forEach(c => res.cookies.set(c.name, c.value))
       return res
     }
 
-    // ── Supabase user exists but membership not found ─────────────────────────
-    // Could be: RLS blocking, or signup didn't complete.
-    // Log for debugging (non-fatal):
-    if (membershipError) {
-      console.warn('Membership lookup error (RLS?):', membershipError.message, 'user:', sbUser.id)
-    }
-
-    // Redirect to onboarding (not signup — user already has an account)
+    // User authenticated but no company membership yet → onboarding
     if (isDashboard) {
-      const url = new URL('/onboarding', request.url)
-      url.searchParams.set('new', '1')
-      return NextResponse.redirect(url)
+      return NextResponse.redirect(new URL('/onboarding?new=1', request.url))
     }
 
-    // For API calls from Supabase user with no membership: still let through
-    // with a generic tenant ID so non-tenant APIs still work
-    if (isAPI && !SUPABASE_ONLY_PATHS.some(p => pathname.startsWith(p))) {
+    // API calls for users without membership
+    if (isAPI) {
       const res = NextResponse.next()
       res.headers.set('x-tenant-id',        process.env.NEXT_PUBLIC_COMPANY_ID || 'default')
       res.headers.set('x-staff-id',          sbUser.id)
-      res.headers.set('x-staff-name',        sbUser.email || '')
-      res.headers.set('x-staff-role',        'admin')
+      res.headers.set('x-staff-role',        'owner')
       res.headers.set('x-staff-permissions', '*')
-      res.headers.set('x-business-type',     'retail')
       return res
     }
   }
 
-  // ── 2. Fall back to PIN-based staff session ───────────────────────────────
-  if (SUPABASE_ONLY_PATHS.some(p => pathname.startsWith(p))) {
+  // 3. Billing routes REQUIRE Supabase auth — redirect to login if no session
+  if (pathname.startsWith('/dashboard/billing') || pathname.startsWith('/api/billing')) {
+    if (isAPI) return NextResponse.json({ error: 'غير مصرح به' }, { status: 401 })
     return NextResponse.redirect(
       new URL('/auth/login?redirectTo=' + encodeURIComponent(pathname), request.url)
     )
   }
 
+  // 4. Fall back to PIN-based staff session for all other dashboard routes
   const token = request.cookies.get(SESSION_COOKIE)?.value
   const staff = token ? await verifySession(token) : null
 
@@ -138,7 +121,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  // Onboarding gate (PIN staff only)
+  // Onboarding gate for PIN staff
   if (isDashboard && staff.role === 'admin') {
     const businessType = request.cookies.get(BUSINESS_TYPE_COOKIE)?.value
     if (!businessType) return NextResponse.redirect(new URL('/onboarding', request.url))

@@ -7,9 +7,9 @@ import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react'
 
 function LoginForm() {
-  const router      = useRouter()
+  const router       = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo  = searchParams.get('redirectTo') || '/dashboard'
+  const redirectTo   = searchParams.get('redirectTo') || '/dashboard'
 
   const [email,        setEmail]        = useState('')
   const [password,     setPassword]     = useState('')
@@ -18,16 +18,21 @@ function LoginForm() {
   const [checking,     setChecking]     = useState(true)
   const [error,        setError]        = useState('')
 
-  // If user already has a valid session, redirect immediately
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    // Use getUser() not getSession() — getUser() validates with the server
+    // preventing the case where a stale/invalid cookie causes a redirect loop
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
         router.replace(redirectTo)
       } else {
         setChecking(false)
       }
-    })
+    }).catch(() => setChecking(false))
+
+    // Timeout fallback: if getUser() hangs, show the form after 3s
+    const t = setTimeout(() => setChecking(false), 3000)
+    return () => clearTimeout(t)
   }, [redirectTo, router])
 
   const handleLogin = async (e: React.FormEvent) => {
