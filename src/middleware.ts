@@ -78,13 +78,17 @@ export async function middleware(request: NextRequest) {
         || request.cookies.get(BUSINESS_TYPE_COOKIE)?.value
         || 'retail'
 
-      const res = NextResponse.next({ request: { headers: request.headers } })
-      res.headers.set('x-tenant-id',        tenantId)
-      res.headers.set('x-staff-id',          sbUser.id)
-      res.headers.set('x-staff-name',        sbUser.email || sbUser.id)
-      res.headers.set('x-staff-role',        membership.role || 'admin')
-      res.headers.set('x-staff-permissions', '*')
-      res.headers.set('x-business-type',     businessType)
+      const reqHeaders = new Headers(request.headers)
+      reqHeaders.set('x-tenant-id',        tenantId)
+      reqHeaders.set('x-staff-id',          sbUser.id)
+      reqHeaders.set('x-staff-name',        sbUser.email || sbUser.id)
+      reqHeaders.set('x-staff-role',        membership.role || 'admin')
+      reqHeaders.set('x-staff-permissions', '*')
+      reqHeaders.set('x-business-type',     businessType)
+
+      const res = NextResponse.next({ request: { headers: reqHeaders } })
+      // Also set on response for any code that reads response headers
+      reqHeaders.forEach((val, key) => { if (key.startsWith('x-')) res.headers.set(key, val) })
       cookieResponse.cookies.getAll().forEach(c => res.cookies.set(c.name, c.value))
       return res
     }
@@ -147,13 +151,16 @@ export async function middleware(request: NextRequest) {
   const businessType = request.cookies.get(BUSINESS_TYPE_COOKIE)?.value || 'retail'
   const companyId    = staff.companyId || process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 
-  const res = NextResponse.next()
-  res.headers.set('x-tenant-id',         companyId)
-  res.headers.set('x-staff-id',          staff.id)
-  res.headers.set('x-staff-name',        staff.name)
-  res.headers.set('x-staff-role',        staff.role)
-  res.headers.set('x-staff-permissions', staff.permissions.join(','))
-  res.headers.set('x-business-type',     businessType)
+  const reqHeaders = new Headers(request.headers)
+  reqHeaders.set('x-tenant-id',         companyId)
+  reqHeaders.set('x-staff-id',          staff.id)
+  reqHeaders.set('x-staff-name',        staff.name)
+  reqHeaders.set('x-staff-role',        staff.role)
+  reqHeaders.set('x-staff-permissions', staff.permissions.join(','))
+  reqHeaders.set('x-business-type',     businessType)
+
+  const res = NextResponse.next({ request: { headers: reqHeaders } })
+  reqHeaders.forEach((val, key) => { if (key.startsWith('x-')) res.headers.set(key, val) })
   return res
 }
 

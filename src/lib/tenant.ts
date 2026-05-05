@@ -37,7 +37,7 @@ export async function getSubscription(companyId?: string): Promise<SubscriptionC
     .from('subscriptions')
     .select('*')
     .eq('company_id', cid)
-    .single()
+    .maybeSingle()
 
   return buildSubscriptionContext(data ?? { company_id: cid, plan: 'free', status: 'active' })
 }

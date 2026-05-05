@@ -44,6 +44,13 @@ BEGIN
 END $$;
 
 -- ── wallets ───────────────────────────────────────────────────────────────────
+-- Add missing columns if table already exists from older schema
+ALTER TABLE wallets ADD COLUMN IF NOT EXISTS balance     NUMERIC(15,2) NOT NULL DEFAULT 0;
+ALTER TABLE wallets ADD COLUMN IF NOT EXISTS currency    TEXT DEFAULT 'SAR';
+ALTER TABLE wallets ADD COLUMN IF NOT EXISTS is_default  BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE wallets ADD COLUMN IF NOT EXISTS is_active   BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE wallets ADD COLUMN IF NOT EXISTS updated_at  TIMESTAMPTZ DEFAULT NOW();
+
 CREATE TABLE IF NOT EXISTS wallets (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id  TEXT NOT NULL,
@@ -88,9 +95,11 @@ CREATE POLICY "allow_all_transactions" ON transactions FOR ALL USING (true) WITH
 -- ── Auto-provision: wallet + chart of accounts for existing company ───────────
 DO $$
 DECLARE
-  v_company_id TEXT;
+  v_company_id UUID;
+  v_company_id_text TEXT;
 BEGIN
-  SELECT id::TEXT INTO v_company_id FROM companies LIMIT 1;
+  SELECT id INTO v_company_id FROM companies LIMIT 1;
+  v_company_id_text := v_company_id::TEXT;
   IF v_company_id IS NULL THEN
     RAISE NOTICE 'لا توجد شركة — أنشئ حساباً أولاً';
     RETURN;
