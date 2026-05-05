@@ -53,42 +53,34 @@ ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "allow_all_permissions" ON permissions;
 CREATE POLICY "allow_all_permissions" ON permissions FOR ALL USING (true) WITH CHECK (true);
 
--- Seed all system permissions
+-- Make 'code' column nullable if it exists from old schema
+ALTER TABLE permissions ALTER COLUMN code DROP NOT NULL;
+
+-- Seed all system permissions (code = key for compatibility with old schema)
 INSERT INTO permissions (key, label, group_name) VALUES
-  -- Sales
-  ('sales.view',        'عرض المبيعات',         'sales'),
-  ('sales.create',      'إنشاء فاتورة بيع',     'sales'),
-  ('sales.refund',      'إرجاع مبيعات',         'sales'),
-  -- POS
-  ('pos.access',        'الوصول لنقطة البيع',   'sales'),
-  -- Purchases
-  ('purchases.view',    'عرض المشتريات',         'purchases'),
-  ('purchases.create',  'إنشاء فاتورة شراء',    'purchases'),
-  -- Inventory
-  ('inventory.view',    'عرض المخزون',           'inventory'),
-  ('inventory.edit',    'تعديل المخزون',         'inventory'),
-  -- Customers
-  ('customers.view',    'عرض العملاء',           'customers'),
-  ('customers.edit',    'تعديل العملاء',         'customers'),
-  -- Expenses
-  ('expenses.view',     'عرض المصروفات',         'expenses'),
-  ('expenses.create',   'إضافة مصروف',           'expenses'),
-  -- Reports
-  ('reports.view',      'عرض التقارير',          'reports'),
-  ('reports.export',    'تصدير التقارير',        'reports'),
-  -- Rentals
-  ('rental.view',       'عرض التأجير',           'rental'),
-  ('rental.create',     'إنشاء حجز',             'rental'),
-  ('rental.manage',     'إدارة التأجير',         'rental'),
-  -- Shifts
-  ('shifts.manage',     'إدارة الورديات',        'shifts'),
-  -- Admin
-  ('admin.staff',       'إدارة الموظفين',        'admin'),
-  ('admin.settings',    'إعدادات النظام',        'admin'),
-  ('admin.audit',       'سجل الأحداث',           'admin'),
-  -- Users & Subscriptions (super admin only)
-  ('users.manage',      'إدارة المستخدمين',      'system'),
-  ('subscriptions.manage','إدارة الاشتراكات',    'system')
+  ('sales.view',           'عرض المبيعات',         'sales'),
+  ('sales.create',         'إنشاء فاتورة بيع',     'sales'),
+  ('sales.refund',         'إرجاع مبيعات',         'sales'),
+  ('pos.access',           'الوصول لنقطة البيع',   'sales'),
+  ('purchases.view',       'عرض المشتريات',         'purchases'),
+  ('purchases.create',     'إنشاء فاتورة شراء',    'purchases'),
+  ('inventory.view',       'عرض المخزون',           'inventory'),
+  ('inventory.edit',       'تعديل المخزون',         'inventory'),
+  ('customers.view',       'عرض العملاء',           'customers'),
+  ('customers.edit',       'تعديل العملاء',         'customers'),
+  ('expenses.view',        'عرض المصروفات',         'expenses'),
+  ('expenses.create',      'إضافة مصروف',           'expenses'),
+  ('reports.view',         'عرض التقارير',          'reports'),
+  ('reports.export',       'تصدير التقارير',        'reports'),
+  ('rental.view',          'عرض التأجير',           'rental'),
+  ('rental.create',        'إنشاء حجز',             'rental'),
+  ('rental.manage',        'إدارة التأجير',         'rental'),
+  ('shifts.manage',        'إدارة الورديات',        'shifts'),
+  ('admin.staff',          'إدارة الموظفين',        'admin'),
+  ('admin.settings',       'إعدادات النظام',        'admin'),
+  ('admin.audit',          'سجل الأحداث',           'admin'),
+  ('users.manage',         'إدارة المستخدمين',      'system'),
+  ('subscriptions.manage', 'إدارة الاشتراكات',      'system')
 ON CONFLICT (key) DO NOTHING;
 
 -- ── 3. ROLE_PERMISSIONS ───────────────────────────────────────────────────────
