@@ -16,7 +16,9 @@
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\api\\\\auth\\\\callback\")",
       "Bash(Out-Null)",
-      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\api\\\\auth\\\\callback\")"
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\api\\\\auth\\\\callback\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\api\\\\integrity\")",
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\dashboard\\\\admin\\\\integrity\")"
     ]
   }
 }
