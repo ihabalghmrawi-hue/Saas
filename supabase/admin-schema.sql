@@ -53,8 +53,10 @@ ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "allow_all_permissions" ON permissions;
 CREATE POLICY "allow_all_permissions" ON permissions FOR ALL USING (true) WITH CHECK (true);
 
--- Make 'code' column nullable if it exists from old schema
-ALTER TABLE permissions ALTER COLUMN code DROP NOT NULL;
+-- Drop NOT NULL on legacy columns that may exist from old schema
+ALTER TABLE permissions ALTER COLUMN code     DROP NOT NULL;
+ALTER TABLE permissions ALTER COLUMN label_ar DROP NOT NULL;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS label_ar TEXT;
 
 -- Seed all system permissions (code = key for compatibility with old schema)
 INSERT INTO permissions (key, label, group_name) VALUES
