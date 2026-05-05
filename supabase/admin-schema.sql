@@ -103,7 +103,9 @@ INSERT INTO permissions (key, label, group_name) VALUES
 ON CONFLICT (key) DO NOTHING;
 
 -- ── 3. ROLE_PERMISSIONS ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS role_permissions (
+-- Drop and recreate to ensure correct schema (old table may have different columns)
+DROP TABLE IF EXISTS role_permissions CASCADE;
+CREATE TABLE role_permissions (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   role_id       UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
   permission_id UUID NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
