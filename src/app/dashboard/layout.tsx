@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
 import { TopBar } from '@/components/layout/topbar'
 import { QuickActionBar } from '@/components/layout/quick-action-bar'
-import { AuthGuard } from '@/providers/auth-guard'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const h = headers()
@@ -19,7 +18,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const staff    = { name: staffName, role: staffRole, permissions: staffPermissions }
   const features = getFeatures(businessType)
 
-  // Load company and branding (non-fatal)
   let companyRow: any = null
   let branding: any   = null
   try {
@@ -30,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ])
     companyRow = company
     branding   = brandingData
-  } catch { /* use fallbacks */ }
+  } catch { /* fallback to defaults */ }
 
   const company = {
     id:                companyRow?.id       || tenantId,
@@ -53,23 +51,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <AuthGuard>
-      <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar
-          company={company as any}
-          user={null}
-          staff={staff}
-          features={features}
-          branding={branding}
-        />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <TopBar company={company} user={null} staff={staff} features={features} />
-          <QuickActionBar features={features} />
-          <main className="flex-1 overflow-y-auto p-6">
-            {children}
-          </main>
-        </div>
+    <div className="flex h-screen overflow-hidden bg-background">
+      <Sidebar
+        company={company as any}
+        user={null}
+        staff={staff}
+        features={features}
+        branding={branding}
+      />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopBar company={company} user={null} staff={staff} features={features} />
+        <QuickActionBar features={features} />
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
       </div>
-    </AuthGuard>
+    </div>
   )
 }

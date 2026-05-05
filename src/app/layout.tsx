@@ -4,7 +4,6 @@ import './globals.css'
 import { ThemeProvider } from '@/components/layout/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { getBranding, buildThemeCss } from '@/lib/branding'
-import { SaaSProvider } from '@/providers/saas-provider'
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -32,9 +31,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className={`${cairo.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <SaaSProvider>
-            {children}
-          </SaaSProvider>
+          {children}
           <Toaster />
         </ThemeProvider>
       </body>
