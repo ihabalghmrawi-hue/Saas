@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
 
   // ── 1. Try Supabase Auth ──────────────────────────────────────────────────
   //    createServerClient needs to forward cookie refreshes to the browser.
-  let supabaseCookiesToSet: { name: string; value: string; options: any }[] = []
+  let supabaseCookiesToSet: { name: string; value: string; options?: any }[] = []
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
