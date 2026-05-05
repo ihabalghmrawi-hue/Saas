@@ -53,10 +53,27 @@ ALTER TABLE permissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "allow_all_permissions" ON permissions;
 CREATE POLICY "allow_all_permissions" ON permissions FOR ALL USING (true) WITH CHECK (true);
 
--- Drop NOT NULL on legacy columns that may exist from old schema
-ALTER TABLE permissions ALTER COLUMN code     DROP NOT NULL;
-ALTER TABLE permissions ALTER COLUMN label_ar DROP NOT NULL;
-ALTER TABLE permissions ADD COLUMN IF NOT EXISTS label_ar TEXT;
+-- Drop NOT NULL on ALL legacy columns dynamically
+-- This handles any old schema without needing to know column names in advance
+DO $$
+DECLARE
+  col TEXT;
+BEGIN
+  FOR col IN
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name = 'permissions'
+      AND table_schema = 'public'
+      AND is_nullable = 'NO'
+      AND column_name != 'id'   -- keep PK not-null
+  LOOP
+    EXECUTE format('ALTER TABLE permissions ALTER COLUMN %I DROP NOT NULL', col);
+  END LOOP;
+END $$;
+
+-- Add any missing columns from old schema so inserts don't fail
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS label_ar   TEXT;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS group_ar   TEXT;
+ALTER TABLE permissions ADD COLUMN IF NOT EXISTS code       TEXT;
 
 -- Seed all system permissions (code = key for compatibility with old schema)
 INSERT INTO permissions (key, label, group_name) VALUES
