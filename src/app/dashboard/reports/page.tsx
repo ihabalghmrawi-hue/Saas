@@ -21,7 +21,7 @@ async function fetchSalesData(days: number): Promise<SalesReportData> {
     { data: customers }, { data: products }, { data: expenses },
   ] = await Promise.all([
     supabase.from('sales').select('id, total, created_at, customer_id').eq('company_id', COMPANY_ID).neq('status', 'cancelled').gte('created_at', since),
-    supabase.from('sale_items').select('product_id, quantity, unit_price, unit_cost, total_price, products(name, name_ar)').eq('company_id', COMPANY_ID).gte('created_at', since),
+    supabase.from('sale_items').select('product_id, quantity, unit_price, cost_price, total, products(name, name_ar), sales!inner(company_id)').eq('sales.company_id', COMPANY_ID).gte('sales.created_at', since),
     supabase.from('customers').select('id, name, balance').eq('company_id', COMPANY_ID).eq('is_active', true),
     supabase.from('products').select('id, name, name_ar, cost_price, inventory(quantity)').eq('company_id', COMPANY_ID).eq('is_active', true),
     supabase.from('expenses').select('amount').eq('company_id', COMPANY_ID).gte('created_at', since),
@@ -42,8 +42,8 @@ async function fetchSalesData(days: number): Promise<SalesReportData> {
     const p = item.products
     if (!productMap[item.product_id]) productMap[item.product_id] = { name: p?.name_ar || p?.name || '؟', qty: 0, revenue: 0, cost: 0 }
     productMap[item.product_id].qty     += Number(item.quantity)
-    productMap[item.product_id].revenue += Number(item.total_price)
-    productMap[item.product_id].cost    += Number(item.unit_cost || 0) * Number(item.quantity)
+    productMap[item.product_id].revenue += Number(item.total)
+    productMap[item.product_id].cost    += Number(item.cost_price || 0) * Number(item.quantity)
   })
   const topProducts = Object.values(productMap).sort((a, b) => b.revenue - a.revenue).slice(0, 10)
     .map(p => ({ ...p, profit: p.revenue - p.cost, margin: p.revenue > 0 ? ((p.revenue - p.cost) / p.revenue) * 100 : 0 }))

@@ -32,7 +32,7 @@ CREATE POLICY "allow_all_backups" ON backup_snapshots FOR ALL USING (true) WITH 
 -- Otherwise create the bucket manually: name = "company-backups", public = false
 -- ============================================================
 
--- Insert bucket record (safe to run, won't fail if storage schema doesn't exist yet)
+-- Insert bucket record only (policies are managed via Supabase Dashboard or RLS on objects)
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.schemata WHERE schema_name = 'storage') THEN
@@ -45,16 +45,12 @@ BEGIN
       ARRAY['application/json', 'text/csv', 'application/zip', 'application/octet-stream']
     )
     ON CONFLICT (id) DO NOTHING;
-
-    -- Allow authenticated and service-role access only
-    INSERT INTO storage.policies (name, bucket_id, operation, definition)
-    VALUES
-      ('backup-upload',   'company-backups', 'INSERT', 'true'),
-      ('backup-read',     'company-backups', 'SELECT', 'true'),
-      ('backup-delete',   'company-backups', 'DELETE', 'true')
-    ON CONFLICT DO NOTHING;
   END IF;
 END $$;
+
+-- Storage object RLS (Supabase uses storage.objects for access control)
+CREATE POLICY "backup_objects_all" ON storage.objects
+  FOR ALL USING (bucket_id = 'company-backups') WITH CHECK (bucket_id = 'company-backups');
 
 -- ============================================================
 -- HELPER: cleanup expired backups (call from a scheduled job)

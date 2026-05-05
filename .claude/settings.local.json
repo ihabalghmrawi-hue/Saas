@@ -9,7 +9,14 @@
       "Bash(git commit *)",
       "Bash(git push *)",
       "Bash(git pull *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(npx tsc *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(Get-ChildItem -Path \"d:\\\\BOB\\\\financeapp\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\api\\\\auth\\\\callback\")",
+      "Bash(Out-Null)",
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\api\\\\auth\\\\callback\")"
     ]
   }
 }

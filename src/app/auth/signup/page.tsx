@@ -115,6 +115,7 @@ export default function SignupPage() {
       user_id: authData.user.id,
       company_id: company.id,
       role: 'owner',
+      is_active: true,
     })
 
     // 4. Save business type cookie then redirect to onboarding

@@ -4,37 +4,53 @@ import { QuickActionBar } from '@/components/layout/quick-action-bar'
 import { headers } from 'next/headers'
 import { getFeatures } from '@/lib/features'
 import { getBranding } from '@/lib/branding'
-
-const defaultCompany = {
-  id: 'default',
-  name: process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي',
-  name_ar: process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي',
-  slug: 'default',
-  currency: process.env.NEXT_PUBLIC_CURRENCY || 'SAR',
-  language: 'ar',
-  timezone: 'Asia/Riyadh',
-  fiscal_year_start: 1,
-  is_active: true,
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString(),
-  logo_url: null,
-  address: null,
-  phone: null,
-  email: null,
-  tax_number: null,
-  settings: null,
-}
+import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const h = headers()
-  const staffName = h.get('x-staff-name') || 'المدير'
-  const staffRole = h.get('x-staff-role') || 'admin'
+  const staffName        = h.get('x-staff-name')        || 'المدير'
+  const staffRole        = h.get('x-staff-role')        || 'admin'
   const staffPermissions = (h.get('x-staff-permissions') || '').split(',').filter(Boolean)
-  const businessType = h.get('x-business-type') || 'retail'
+  const businessType     = h.get('x-business-type')     || 'retail'
+  const tenantId         = h.get('x-tenant-id')         || process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 
-  const staff = { name: staffName, role: staffRole, permissions: staffPermissions }
+  const staff    = { name: staffName, role: staffRole, permissions: staffPermissions }
   const features = getFeatures(businessType)
-  const branding = await getBranding()
+
+  // Load company info and branding (non-fatal)
+  let companyRow: any = null
+  let branding: any   = null
+  try {
+    const supabase = createClient()
+    const [{ data: company }, brandingData] = await Promise.all([
+      supabase.from('companies').select('id, name, currency').eq('id', tenantId).maybeSingle(),
+      getBranding(),
+    ])
+    companyRow = company
+    branding   = brandingData
+  } catch {
+    branding = null
+  }
+
+  const defaultCompany = {
+    id:                companyRow?.id       || tenantId,
+    name:              companyRow?.name     || process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي',
+    name_ar:           companyRow?.name     || process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي',
+    slug:              'default',
+    currency:          companyRow?.currency || process.env.NEXT_PUBLIC_CURRENCY     || 'SAR',
+    language:          'ar',
+    timezone:          'Asia/Riyadh',
+    fiscal_year_start: 1,
+    is_active:         true,
+    created_at:        new Date().toISOString(),
+    updated_at:        new Date().toISOString(),
+    logo_url:          null,
+    address:           null,
+    phone:             null,
+    email:             null,
+    tax_number:        null,
+    settings:          null,
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

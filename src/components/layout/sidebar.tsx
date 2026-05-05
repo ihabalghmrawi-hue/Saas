@@ -77,7 +77,7 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
       items: [
         { label: 'المنتجات', href: '/dashboard/inventory', icon: Package, show: features.showInventory && can(staff, 'inventory.view') },
         { label: 'حركة المخزون', href: '/dashboard/inventory/movements', icon: Warehouse, show: features.showInventory && can(staff, 'inventory.view') },
-        { label: 'المتغيرات', href: '/dashboard/inventory/variants', icon: Layers, show: features.hasVariants && features.showInventory && can(staff, 'inventory.view') },
+        { label: 'متغيرات المنتجات', href: '/dashboard/inventory/variants', icon: Layers, show: false },
       ],
     },
     {
