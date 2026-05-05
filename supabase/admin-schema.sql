@@ -163,7 +163,7 @@ WHERE role_id IS NULL;
 -- ── 5. UPDATE SUBSCRIPTIONS: add admin-managed fields ────────────────────────
 ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS start_date   DATE DEFAULT CURRENT_DATE;
 ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS end_date     DATE;
-ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS created_by   UUID REFERENCES auth.users(id);
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS created_by   UUID;
 ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS notes        TEXT;
 
 -- Ensure status has correct values
@@ -185,11 +185,11 @@ WHERE end_date IS NOT NULL
   AND status = 'active';
 
 -- ── 7. AUTO-PROVISION: give existing companies a subscription if missing ──────
-INSERT INTO subscriptions (tenant_id, status, plan, start_date, end_date)
-SELECT id, 'active', 'free', CURRENT_DATE, CURRENT_DATE + INTERVAL '365 days'
+INSERT INTO subscriptions (company_id, status, plan, start_date, end_date)
+SELECT id::TEXT, 'active', 'free', CURRENT_DATE, CURRENT_DATE + INTERVAL '365 days'
 FROM companies
 WHERE NOT EXISTS (
-  SELECT 1 FROM subscriptions s WHERE s.tenant_id = companies.id
+  SELECT 1 FROM subscriptions s WHERE s.company_id = companies.id::TEXT
 )
 ON CONFLICT DO NOTHING;
 

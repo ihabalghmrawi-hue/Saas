@@ -88,7 +88,7 @@ export async function middleware(request: NextRequest) {
       const { data: sub } = await supabase
         .from('subscriptions')
         .select('status, end_date')
-        .eq('tenant_id', tenantId)
+        .eq('company_id', tenantId)
         .maybeSingle()
 
       const subExpired = sub && (
@@ -141,8 +141,8 @@ export async function middleware(request: NextRequest) {
 
   if (!staff) {
     if (isAPI) return NextResponse.json({ error: 'غير مصرح به' }, { status: 401 })
-    const url = new URL('/staff-login', request.url)
-    url.searchParams.set('from', pathname)
+    const url = new URL('/auth/login', request.url)
+    url.searchParams.set('redirectTo', pathname)
     return NextResponse.redirect(url)
   }
 
