@@ -1,23 +1,25 @@
-import { Sidebar } from '@/components/layout/sidebar'
-import { TopBar } from '@/components/layout/topbar'
-import { QuickActionBar } from '@/components/layout/quick-action-bar'
 import { headers } from 'next/headers'
 import { getFeatures } from '@/lib/features'
 import { getBranding } from '@/lib/branding'
 import { createClient } from '@/lib/supabase/server'
+import { Sidebar } from '@/components/layout/sidebar'
+import { TopBar } from '@/components/layout/topbar'
+import { QuickActionBar } from '@/components/layout/quick-action-bar'
+import { AuthGuard } from '@/providers/auth-guard'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const h = headers()
-  const staffName        = h.get('x-staff-name')        || 'المدير'
-  const staffRole        = h.get('x-staff-role')        || 'admin'
+
+  const staffName        = h.get('x-staff-name')         || 'المدير'
+  const staffRole        = h.get('x-staff-role')         || 'admin'
   const staffPermissions = (h.get('x-staff-permissions') || '').split(',').filter(Boolean)
-  const businessType     = h.get('x-business-type')     || 'retail'
-  const tenantId         = h.get('x-tenant-id')         || process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+  const businessType     = h.get('x-business-type')      || 'retail'
+  const tenantId         = h.get('x-tenant-id')          || process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 
   const staff    = { name: staffName, role: staffRole, permissions: staffPermissions }
   const features = getFeatures(businessType)
 
-  // Load company info and branding (non-fatal)
+  // Load company and branding (non-fatal)
   let companyRow: any = null
   let branding: any   = null
   try {
@@ -28,11 +30,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
     ])
     companyRow = company
     branding   = brandingData
-  } catch {
-    branding = null
-  }
+  } catch { /* use fallbacks */ }
 
-  const defaultCompany = {
+  const company = {
     id:                companyRow?.id       || tenantId,
     name:              companyRow?.name     || process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي',
     name_ar:           companyRow?.name     || process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي',
@@ -53,15 +53,23 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar company={defaultCompany as any} user={null} staff={staff} features={features} branding={branding} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar company={defaultCompany} user={null} staff={staff} features={features} />
-        <QuickActionBar features={features} />
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
+    <AuthGuard>
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar
+          company={company as any}
+          user={null}
+          staff={staff}
+          features={features}
+          branding={branding}
+        />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <TopBar company={company} user={null} staff={staff} features={features} />
+          <QuickActionBar features={features} />
+          <main className="flex-1 overflow-y-auto p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AuthGuard>
   )
 }

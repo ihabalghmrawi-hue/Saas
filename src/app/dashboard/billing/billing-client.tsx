@@ -22,11 +22,33 @@ const STATUS_CONFIG = {
 }
 
 export function BillingClient({ subscription: initialSub }: Props) {
-  const [sub, setSub]     = useState(initialSub)
+  // Guard: if subscription is somehow null/undefined, show empty state
+  const [sub]     = useState<SubscriptionContext | null>(initialSub ?? null)
   const [loading, setLoading] = useState<Plan | 'portal' | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
   const notify = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 4000) }
+
+  // Empty state — no subscription data
+  if (!sub) {
+    return (
+      <div className="max-w-4xl space-y-6" dir="rtl">
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-primary" />
+            الاشتراك والفوترة
+          </h1>
+        </div>
+        <div className="bg-card border rounded-2xl p-12 text-center">
+          <CreditCard className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+          <p className="font-semibold text-lg">لا توجد بيانات اشتراك</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            سيتم إعداد اشتراكك تلقائياً عند إكمال التسجيل
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const handleUpgrade = async (plan: Plan) => {
     setLoading(plan)
