@@ -62,7 +62,7 @@ export async function requireFeature(feature: string): Promise<SubscriptionConte
   if (!sub.isActive) {
     throw new Error('اشتراكك غير نشط — يرجى تجديد الاشتراك')
   }
-  const featMap = sub.features as Record<string, boolean>
+  const featMap = sub.features as unknown as Record<string, boolean>
   if (feature in featMap && !featMap[feature]) {
     throw new Error(`هذه الميزة غير متاحة في خطة "${sub.plan}" — يرجى الترقية`)
   }
