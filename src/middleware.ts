@@ -60,7 +60,7 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         getAll:  () => request.cookies.getAll(),
-        setAll:  (cookies) => { supabaseCookiesToSet = cookies },
+        setAll:  (cookies: { name: string; value: string; options?: any }[]) => { supabaseCookiesToSet = cookies },
       },
     },
   )
