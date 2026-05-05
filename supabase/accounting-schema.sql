@@ -1,9 +1,10 @@
 -- ============================================================
 -- ACCOUNTING SCHEMA ENHANCEMENTS
 -- Run in Supabase SQL Editor after base schema
+-- Safe to re-run (idempotent)
 -- ============================================================
 
--- Ensure journal_entries has source columns
+-- ── journal_entries: add missing columns ─────────────────────────────────────
 ALTER TABLE journal_entries
   ADD COLUMN IF NOT EXISTS source    TEXT,
   ADD COLUMN IF NOT EXISTS source_id TEXT,
@@ -11,7 +12,7 @@ ALTER TABLE journal_entries
 
 CREATE INDEX IF NOT EXISTS idx_journal_source ON journal_entries(company_id, source, source_id);
 
--- Ensure journal_entry_lines table exists
+-- ── journal_entry_lines ───────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS journal_entry_lines (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   journal_entry_id UUID NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
@@ -26,9 +27,10 @@ CREATE INDEX IF NOT EXISTS idx_jel_entry   ON journal_entry_lines(journal_entry_
 CREATE INDEX IF NOT EXISTS idx_jel_account ON journal_entry_lines(account_id);
 
 ALTER TABLE journal_entry_lines ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "allow_all_jel" ON journal_entry_lines FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "allow_all_jel" ON journal_entry_lines;
+CREATE POLICY "allow_all_jel" ON journal_entry_lines FOR ALL USING (true) WITH CHECK (true);
 
--- Ensure accounts table has company_id + code unique constraint
+-- ── accounts: add missing columns + unique constraint ────────────────────────
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS company_id TEXT;
 ALTER TABLE accounts ADD COLUMN IF NOT EXISTS is_active  BOOLEAN DEFAULT true;
 
@@ -41,7 +43,7 @@ BEGIN
   END IF;
 END $$;
 
--- Ensure wallets table exists
+-- ── wallets ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS wallets (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id  TEXT NOT NULL,
@@ -56,9 +58,10 @@ CREATE TABLE IF NOT EXISTS wallets (
 
 CREATE INDEX IF NOT EXISTS idx_wallets_company ON wallets(company_id);
 ALTER TABLE wallets ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "allow_all_wallets" ON wallets FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "allow_all_wallets" ON wallets;
+CREATE POLICY "allow_all_wallets" ON wallets FOR ALL USING (true) WITH CHECK (true);
 
--- Ensure transactions table exists
+-- ── transactions ──────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS transactions (
   id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id       TEXT NOT NULL,
@@ -79,15 +82,19 @@ CREATE INDEX IF NOT EXISTS idx_transactions_company ON transactions(company_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_wallet  ON transactions(wallet_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_date    ON transactions(company_id, transaction_date DESC);
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "allow_all_transactions" ON transactions FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "allow_all_transactions" ON transactions;
+CREATE POLICY "allow_all_transactions" ON transactions FOR ALL USING (true) WITH CHECK (true);
 
--- Auto-provision default wallet and chart of accounts for existing company
+-- ── Auto-provision: wallet + chart of accounts for existing company ───────────
 DO $$
 DECLARE
   v_company_id TEXT;
 BEGIN
   SELECT id::TEXT INTO v_company_id FROM companies LIMIT 1;
-  IF v_company_id IS NULL THEN RETURN; END IF;
+  IF v_company_id IS NULL THEN
+    RAISE NOTICE 'لا توجد شركة — أنشئ حساباً أولاً';
+    RETURN;
+  END IF;
 
   -- Default wallet
   INSERT INTO wallets (company_id, name, balance, is_default, is_active)
