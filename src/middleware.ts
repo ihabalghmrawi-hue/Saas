@@ -13,11 +13,7 @@ const PUBLIC_PATHS = [
   '/blocked',
   '/api/auth',
   '/api/onboarding',
-  '/admin',       // admin has its own guard
 ]
-
-// Admin paths only for super admin — checked inside admin layout
-const ADMIN_PATHS = ['/admin']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

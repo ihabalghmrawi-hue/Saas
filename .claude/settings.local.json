@@ -18,7 +18,24 @@
       "Bash(Out-Null)",
       "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\api\\\\auth\\\\callback\")",
       "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\api\\\\integrity\")",
-      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\dashboard\\\\admin\\\\integrity\")"
+      "PowerShell(New-Item -ItemType Directory -Force \"d:\\\\BOB\\\\financeapp\\\\src\\\\app\\\\dashboard\\\\admin\\\\integrity\")",
+      "Bash(npm run *)",
+      "PowerShell(Get-Command node -ErrorAction SilentlyContinue; Get-ChildItem \"C:\\\\Program Files\\\\nodejs\" -ErrorAction SilentlyContinue | Select-Object -First 5; Get-ChildItem \"$env:APPDATA\\\\npm\" -ErrorAction SilentlyContinue | Select-Object -First 5)",
+      "PowerShell($env:PATH)",
+      "Bash(npm install *)",
+      "Bash(npm list *)",
+      "Bash(mkdir \"d:\\\\financeapp-admin\" \"d:\\\\financeapp-admin\\\\src\" \"d:\\\\financeapp-admin\\\\src\\\\app\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\admin\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\admin\\\\tenants\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\admin\\\\subscriptions\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\admin\\\\users\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\admin\\\\roles\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\api\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\api\\\\admin\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\api\\\\admin\\\\tenants\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\api\\\\admin\\\\subscriptions\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\api\\\\admin\\\\users\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\api\\\\admin\\\\roles\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\api\\\\auth\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\auth\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\auth\\\\login\" \"d:\\\\financeapp-admin\\\\src\\\\app\\\\auth\\\\callback\" \"d:\\\\financeapp-admin\\\\src\\\\lib\" \"d:\\\\financeapp-admin\\\\src\\\\lib\\\\supabase\" 2>&1)",
+      "Bash(Remove-Item -Recurse -Force \"d:\\\\financeapp\\\\src\\\\app\\\\admin\")",
+      "Bash(Remove-Item -Recurse -Force \"d:\\\\financeapp\\\\src\\\\app\\\\api\\\\admin\")",
+      "Bash(Remove-Item -Force \"d:\\\\financeapp\\\\src\\\\lib\\\\admin-guard.ts\")",
+      "Bash(Write-Host \"Done\")",
+      "PowerShell(Remove-Item -Recurse -Force \"d:\\\\financeapp\\\\src\\\\app\\\\admin\" -Confirm:$false)",
+      "PowerShell(Remove-Item -Recurse -Force \"d:\\\\financeapp\\\\src\\\\app\\\\api\\\\admin\" -Confirm:$false)",
+      "PowerShell(Remove-Item -Force \"d:\\\\financeapp\\\\src\\\\lib\\\\admin-guard.ts\" -Confirm:$false)",
+      "PowerShell(Get-ChildItem -Recurse \"d:\\\\financeapp-admin\\\\src\" | Where-Object { -not $_.PSIsContainer } | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"d:\\\\financeapp-admin\\\\\", \"\"\\) })"
+    ],
+    "additionalDirectories": [
+      "d:\\"
     ]
   }
 }
