@@ -1,7 +1,13 @@
 // Session signing using HMAC-SHA256 (available in Node.js + Edge runtime)
 
 const SESSION_COOKIE = 'erp_staff_session'
-const SESSION_SECRET = process.env.SESSION_SECRET || 'erp-default-secret-change-in-production'
+const DEFAULT_SECRET  = 'erp-default-secret-change-in-production'
+const SESSION_SECRET  = process.env.SESSION_SECRET || DEFAULT_SECRET
+
+if (process.env.NODE_ENV === 'production' && SESSION_SECRET === DEFAULT_SECRET) {
+  // This is a startup check — logs are visible in Vercel/server logs
+  console.error('[SECURITY] SESSION_SECRET is using the default insecure value in production. Set SESSION_SECRET in your environment variables.')
+}
 
 export interface StaffSession {
   id: string

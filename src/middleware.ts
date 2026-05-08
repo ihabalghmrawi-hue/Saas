@@ -1,9 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { verifySession, SESSION_COOKIE } from '@/lib/session'
-import { canAccessRoute } from '@/lib/permissions'
-import { BUSINESS_TYPE_COOKIE } from '@/lib/features'
+import { createServerClient }              from '@supabase/ssr'
+import { verifySession, SESSION_COOKIE }   from '@/lib/session'
+import { canAccessRoute }                  from '@/lib/permissions'
+import { BUSINESS_TYPE_COOKIE }            from '@/lib/features'
 import { isSuperAdmin, loadRolePermissions } from '@/lib/rbac'
+import { computeLifecycle }                from '@/lib/subscription'
+import { checkRateLimit, getClientIp, rateLimitHeaders, RATE_LIMITS } from '@/lib/rate-limit'
 
 const PUBLIC_PATHS = [
   '/auth',
@@ -18,6 +20,18 @@ const PUBLIC_PATHS = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // ── Rate-limit login endpoints ────────────────────────────────────────────
+  if (pathname === '/api/auth/login' || pathname === '/api/auth/pin') {
+    const ip     = getClientIp(request)
+    const result = checkRateLimit(`login:${ip}`, RATE_LIMITS.login)
+    if (!result.allowed) {
+      return NextResponse.json(
+        { error: 'عدد كبير من المحاولات. حاول مرة أخرى بعد قليل.' },
+        { status: 429, headers: rateLimitHeaders(result, RATE_LIMITS.login) },
+      )
+    }
+  }
+
   if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
     return NextResponse.next()
   }
@@ -27,8 +41,20 @@ export async function middleware(request: NextRequest) {
 
   if (!isDashboard && !isAPI) return NextResponse.next()
 
+  // ── General API rate limit ────────────────────────────────────────────────
+  if (isAPI) {
+    const ip     = getClientIp(request)
+    const result = checkRateLimit(`api:${ip}`, RATE_LIMITS.api)
+    if (!result.allowed) {
+      return NextResponse.json(
+        { error: 'تم تجاوز الحد المسموح به من الطلبات.' },
+        { status: 429, headers: rateLimitHeaders(result, RATE_LIMITS.api) },
+      )
+    }
+  }
+
   // ── Supabase Auth ─────────────────────────────────────────────────────────
-  const cookiesToSet: { name: string; value: string; options?: any }[] = []
+  const cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[] = []
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,9 +62,7 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         getAll: () => request.cookies.getAll(),
-        setAll: (list: { name: string; value: string; options?: any }[]) => {
-          cookiesToSet.push(...list)
-        },
+        setAll: (list) => { cookiesToSet.push(...list) },
       },
     },
   )
@@ -48,7 +72,6 @@ export async function middleware(request: NextRequest) {
   if (user) {
     const superAdmin = isSuperAdmin(user.email)
 
-    // Super admin bypasses tenant/subscription checks
     if (superAdmin) {
       const reqHeaders = buildHeaders(request.headers, {
         'x-tenant-id':         'super_admin',
@@ -58,13 +81,13 @@ export async function middleware(request: NextRequest) {
         'x-staff-permissions': '*',
         'x-business-type':     'retail',
         'x-is-super-admin':    'true',
+        'x-sub-status':        'active',
       })
       const res = NextResponse.next({ request: { headers: reqHeaders } })
       cookiesToSet.forEach(({ name, value, options }) => res.cookies.set(name, value, options ?? {}))
       return res
     }
 
-    // Regular user: get membership with role
     const { data: membership } = await supabase
       .from('memberships')
       .select('company_id, role, role_id')
@@ -80,28 +103,26 @@ export async function middleware(request: NextRequest) {
     if (membership?.company_id) {
       const tenantId = membership.company_id
 
-      // ── Subscription check ──────────────────────────────────────────────
+      // ── Subscription lifecycle check ─────────────────────────────────────
       const { data: sub } = await supabase
         .from('subscriptions')
-        .select('status, end_date')
+        .select('id, company_id, plan, status, start_date, end_date, trial_ends_at, notes')
         .eq('company_id', tenantId)
         .maybeSingle()
 
-      const subExpired = sub && (
-        sub.status === 'suspended' ||
-        sub.status === 'expired' ||
-        (sub.end_date && new Date(sub.end_date) < new Date())
-      )
+      const lifecycle = computeLifecycle(sub as any)
 
-      if (subExpired && isDashboard) {
+      // Suspended/Cancelled → hard block
+      if (lifecycle.isBlocked && isDashboard) {
         return NextResponse.redirect(new URL('/blocked', request.url))
       }
 
-      // ── Load permissions for this role ──────────────────────────────────
-      let permissions: string[] = ['*'] // owner fallback
-      if (membership.role_id && membership.role !== 'owner') {
-        const perms = await loadRolePermissions(supabase, membership.role_id)
-        permissions = perms.length > 0 ? perms : ['*']
+      // ── Load permissions ─────────────────────────────────────────────────
+      let permissions: string[] = ['*']
+      if (membership.role !== 'owner') {
+        permissions = membership.role_id
+          ? await loadRolePermissions(supabase, membership.role_id)
+          : []
       }
 
       const { data: settings } = await supabase
@@ -123,6 +144,11 @@ export async function middleware(request: NextRequest) {
         'x-staff-permissions': permissions.join(','),
         'x-business-type':     businessType,
         'x-is-super-admin':    'false',
+        'x-sub-status':        lifecycle.status,
+        'x-sub-plan':          sub?.plan ?? 'free',
+        'x-sub-grace':         lifecycle.showGraceBanner ? '1' : '0',
+        'x-sub-trial':         lifecycle.showTrialBanner ? '1' : '0',
+        'x-sub-days-left':     lifecycle.daysLeft !== null ? String(lifecycle.daysLeft) : '',
       })
 
       const res = NextResponse.next({ request: { headers: reqHeaders } })
@@ -162,6 +188,11 @@ export async function middleware(request: NextRequest) {
     'x-staff-permissions': staff.permissions.join(','),
     'x-business-type':     businessType,
     'x-is-super-admin':    'false',
+    'x-sub-status':        'active',
+    'x-sub-plan':          'free',
+    'x-sub-grace':         '0',
+    'x-sub-trial':         '0',
+    'x-sub-days-left':     '',
   })
 
   return NextResponse.next({ request: { headers: reqHeaders } })
