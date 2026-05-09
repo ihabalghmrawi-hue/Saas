@@ -192,64 +192,106 @@ export async function createJournalEntry(
   // 7. Determine status
   const status = auto_generated ? 'posted' : 'draft'
 
-  // 8. Insert journal entry
-  const { data: entry, error: entryErr } = await supabase
+  // 8. Insert journal entry — try with all columns, fall back to base columns
+  const fullPayload: Record<string, unknown> = {
+    company_id,
+    entry_number,
+    date:            entryDate,
+    description,
+    description_ar:  description_ar  || description,
+    reference:       reference       || null,
+    source:          source          || 'manual',
+    source_id:       source_id       || null,
+    source_document: source_document || null,
+    status,
+    total_debit,
+    total_credit,
+    is_balanced:     true,
+    is_posted:       auto_generated,
+    auto_generated,
+    fiscal_year_id,
+    period_id,
+    posted_at:       auto_generated ? new Date().toISOString() : null,
+  }
+
+  let entry: { id: string; entry_number: string } | null = null
+  const { data: d1, error: e1 } = await supabase
     .from('journal_entries')
-    .insert({
-      company_id,
-      entry_number,
-      date:            entryDate,
-      description,
-      description_ar:  description_ar  || description,
-      reference:       reference       || null,
-      source:          source          || 'manual',
-      source_id:       source_id       || null,
-      source_document: source_document || null,
-      status,
-      total_debit,
-      total_credit,
-      is_balanced:     true,
-      is_posted:       auto_generated,
-      auto_generated,
-      fiscal_year_id,
-      period_id,
-      posted_at:       auto_generated ? new Date().toISOString() : null,
-    })
+    .insert(fullPayload)
     .select('id, entry_number')
     .single()
 
-  if (entryErr || !entry) {
-    return { ok: false, error: `فشل إنشاء القيد: ${entryErr?.message}` }
+  if (!e1 && d1) {
+    entry = d1
+  } else {
+    // Fallback: minimal columns guaranteed in original schema
+    const minPayload: Record<string, unknown> = {
+      company_id,
+      entry_number,
+      date:        entryDate,
+      description,
+      reference:   reference   || null,
+      source:      source      || 'manual',
+      source_id:   source_id   || null,
+      status,
+      total_debit,
+      total_credit,
+      is_balanced: true,
+    }
+    const { data: d2, error: e2 } = await supabase
+      .from('journal_entries')
+      .insert(minPayload)
+      .select('id, entry_number')
+      .single()
+    if (e2 || !d2) {
+      return { ok: false, error: `فشل إنشاء القيد: ${e2?.message ?? e1?.message}` }
+    }
+    entry = d2
   }
 
-  // 9. Insert journal lines
+  if (!entry) {
+    return { ok: false, error: 'فشل إنشاء القيد' }
+  }
+
+  // 9. Insert journal lines — try full then fallback without optional columns
+  const linesPayload = resolvedLines.map(l => ({
+    journal_entry_id: entry!.id,
+    account_id:       l.account_id,
+    debit:            l.debit,
+    credit:           l.credit,
+    description:      l.description,
+    line_number:      l.line_number,
+  }))
+
   const { error: linesErr } = await supabase
     .from('journal_entry_lines')
-    .insert(
-      resolvedLines.map(l => ({
-        journal_entry_id: entry.id,
+    .insert(linesPayload)
+
+  if (linesErr) {
+    // Try without line_number and description if columns missing
+    const { error: linesErr2 } = await supabase
+      .from('journal_entry_lines')
+      .insert(resolvedLines.map(l => ({
+        journal_entry_id: entry!.id,
         account_id:       l.account_id,
         debit:            l.debit,
         credit:           l.credit,
-        description:      l.description,
-        line_number:      l.line_number,
-      }))
-    )
-
-  if (linesErr) {
-    await supabase.from('journal_entries').delete().eq('id', entry.id)
-    return { ok: false, error: `فشل إدراج بنود القيد: ${linesErr.message}` }
+      })))
+    if (linesErr2) {
+      await supabase.from('journal_entries').delete().eq('id', entry!.id)
+      return { ok: false, error: `فشل إدراج بنود القيد: ${linesErr2.message}` }
+    }
   }
 
   // 10. Update account balances if posted
   if (auto_generated) {
-    await updateAccountBalancesForEntry(supabase, entry.id, company_id, resolvedLines)
+    await updateAccountBalancesForEntry(supabase, entry!.id, company_id, resolvedLines)
   }
 
   return {
     ok:               true,
-    journal_id:       entry.id,
-    entry_number:     entry.entry_number,
+    journal_id:       entry!.id,
+    entry_number:     entry!.entry_number,
     accounts_created,
   }
 }

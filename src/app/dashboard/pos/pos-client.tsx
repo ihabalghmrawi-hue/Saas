@@ -331,6 +331,8 @@ export function POSClient({ products, categories, customers, warehouses, default
         payments: finalPayments.filter(p => p.amount > 0),
       })
       clearCart()
+      // Auto-print after receipt renders
+      setTimeout(() => window.print(), 400)
     } catch (e: any) {
       setError(e.message)
     } finally {

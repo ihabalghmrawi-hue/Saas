@@ -1,10 +1,11 @@
 'use client'
 
-import { Bell, Moon, Sun, Search, Settings } from 'lucide-react'
+import { Moon, Sun, Search, Settings } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import type { Features } from '@/lib/features'
+import { NotificationsPanel } from './notifications-panel'
 
 const pageTitles: Record<string, string> = {
   '/dashboard': 'الملخص المالي',
@@ -71,10 +72,7 @@ export function TopBar({ company, user, staff, features }: TopBarProps) {
           {mounted && theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
 
-        <button className="relative p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-        </button>
+        <NotificationsPanel />
 
         {staff?.role === 'admin' && (
           <button

@@ -21,6 +21,8 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  const [welcome, setWelcome] = useState('')
+
   const handleLogin = async (code: string) => {
     setLoading(true); setError('')
     try {
@@ -37,8 +39,13 @@ function LoginForm() {
         setLoading(false)
         return
       }
-      const from = params.get('from') || '/dashboard'
-      router.replace(from)
+      // Show welcome message briefly before redirect
+      const name = data.name || 'بك'
+      setWelcome(`مرحباً ${name}! 👋`)
+      setTimeout(() => {
+        const from = params.get('from') || '/dashboard'
+        router.replace(from)
+      }, 900)
     } catch {
       setError('حدث خطأ في الاتصال')
       setPin('')
@@ -72,7 +79,13 @@ function LoginForm() {
         ))}
       </div>
 
-      {error && (
+      {welcome && (
+        <div className="flex items-center justify-center gap-2 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 text-sm font-semibold p-3 rounded-xl animate-pulse">
+          {welcome}
+        </div>
+      )}
+
+      {error && !welcome && (
         <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 text-sm p-3 rounded-xl">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {error}

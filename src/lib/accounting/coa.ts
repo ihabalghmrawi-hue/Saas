@@ -359,19 +359,21 @@ export async function ensureCOA(
       parent_id = existingMap[acct.parent_code] || null
     }
 
-    const { data: newAcct, error } = await supabase
+    // Try full insert first (all columns)
+    let newAcct: { id: string; code: string } | null = null
+    const { data: d1, error: e1 } = await supabase
       .from('accounts')
       .insert({
         company_id,
-        code:           acct.code,
-        name:           acct.name,
-        name_ar:        acct.name_ar,
-        type:           acct.type,
-        level:          acct.level,
-        is_postable:    acct.is_postable,
-        is_header:      acct.is_header,
-        normal_balance: acct.normal_balance,
-        account_group:  acct.account_group,
+        code:            acct.code,
+        name:            acct.name,
+        name_ar:         acct.name_ar,
+        type:            acct.type,
+        level:           acct.level,
+        is_postable:     acct.is_postable,
+        is_header:       acct.is_header,
+        normal_balance:  acct.normal_balance,
+        account_group:   acct.account_group,
         parent_id,
         current_balance: 0,
         is_active:       true,
@@ -380,7 +382,26 @@ export async function ensureCOA(
       .select('id, code')
       .single()
 
-    if (!error && newAcct) {
+    if (!e1 && d1) {
+      newAcct = d1
+    } else if (e1) {
+      // Fallback: insert with only columns that definitely exist in base schema
+      const { data: d2 } = await supabase
+        .from('accounts')
+        .insert({
+          company_id,
+          code:      acct.code,
+          name:      acct.name,
+          type:      acct.type,
+          is_active: true,
+          ...(parent_id ? { parent_id } : {}),
+        })
+        .select('id, code')
+        .single()
+      if (d2) newAcct = d2
+    }
+
+    if (newAcct) {
       existingMap[newAcct.code] = newAcct.id
       created = true
     }
