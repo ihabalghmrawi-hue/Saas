@@ -1,10 +1,11 @@
 import { DangerZoneClient } from './danger-client'
 import { createClient } from '@/lib/supabase/server'
+import { getCompanyId } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 
 export default async function DangerZonePage() {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
 
   // Load counts so admin can see what will be deleted

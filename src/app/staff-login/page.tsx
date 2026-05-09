@@ -31,7 +31,8 @@ function LoginForm() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error || 'خطأ')
+        const msg = data.error
+        setError(typeof msg === 'string' ? msg : (msg?.message || 'رقم سري خاطئ'))
         setPin('')
         setLoading(false)
         return

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const COMPANY_ID = getCompanyId()
   const body = await req.json()
   const supabase = createClient()
   const { data, error } = await supabase.from('dresses')
@@ -14,6 +14,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   // Check no active rentals
   const { data: active } = await supabase.from('rental_orders')

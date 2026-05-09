@@ -1,11 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { MovementsClient } from './movements-client'
+import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
 
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-
 export default async function MovementsPage() {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
 
   const [{ data: movements }, { data: products }, { data: warehouses }] = await Promise.all([
@@ -25,7 +25,7 @@ export default async function MovementsPage() {
       products={products || []}
       warehouses={warehouses || []}
       companyId={COMPANY_ID}
-      currency={process.env.NEXT_PUBLIC_CURRENCY || 'SAR'}
+      currency={getCurrency()}
     />
   )
 }

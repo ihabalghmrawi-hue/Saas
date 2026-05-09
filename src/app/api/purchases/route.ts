@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { postPurchaseEntry, updateWallet } from '@/lib/accounting'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { postPurchaseJournal as postPurchaseEntry, updateWallet } from '@/lib/accounting'
+import { recordInventoryMovement } from '@/lib/inventory'
 
 export async function POST(req: NextRequest) {
   const supabase = createClient()
@@ -10,7 +12,7 @@ export async function POST(req: NextRequest) {
     const {
       company_id, supplier_id, warehouse_id,
       purchase_date, items, subtotal, total,
-      paid_amount, due_amount, payment_status, notes,
+      paid_amount, due_amount, payment_status, notes, wallet_id,
     } = body
 
     if (!company_id) return NextResponse.json({ error: 'company_id مطلوب' }, { status: 400 })
@@ -68,30 +70,21 @@ export async function POST(req: NextRequest) {
       }, { status: 500 })
     }
 
-    // ── 3. Update inventory ────────────────────────────────────────────────────
+    // ── 3. Update inventory + record movements ────────────────────────────────
     const inventoryErrors: string[] = []
     if (warehouse_id) {
       for (const item of items) {
         if (!item.product_id) continue
-        const { data: existing } = await supabase
-          .from('inventory')
-          .select('id, quantity')
-          .eq('product_id', item.product_id)
-          .eq('warehouse_id', warehouse_id)
-          .is('variant_id', null)
-          .single()
-
-        if (existing) {
-          const { error: invErr } = await supabase.from('inventory')
-            .update({ quantity: existing.quantity + item.quantity, updated_at: new Date().toISOString() })
-            .eq('id', existing.id)
-          if (invErr) inventoryErrors.push(item.product_id)
-        } else {
-          await supabase.from('inventory').insert({
-            product_id: item.product_id, warehouse_id, company_id,
-            quantity: item.quantity, reserved_quantity: 0,
-          })
-        }
+        const result = await recordInventoryMovement(supabase, {
+          company_id,
+          product_id:     item.product_id,
+          warehouse_id,
+          type:           'purchase',
+          quantity:       item.quantity,
+          reference_id:   purchase.id,
+          reference_type: 'purchase',
+        })
+        if (!result.ok) inventoryErrors.push(item.product_id)
 
         // Update product cost price to latest
         await supabase.from('products').update({ cost_price: item.unit_cost }).eq('id', item.product_id)
@@ -99,10 +92,16 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 4. Accounting: journal entry ───────────────────────────────────────────
-    const journalResult = await postPurchaseEntry(
-      supabase, company_id, invoice_number, purchase.id,
-      total, actualPaid, actualDue,
-    )
+    const admin = createAdminClient()
+    const journalResult = await postPurchaseEntry(admin, {
+      company_id,
+      invoice_number,
+      purchase_id:  purchase.id,
+      total,
+      paid_amount:  actualPaid,
+      due_amount:   actualDue,
+      wallet_id:    wallet_id || undefined,
+    })
     if (!journalResult.ok) {
       console.error('Purchase journal entry failed:', journalResult.error)
       await supabase.from('audit_logs').insert({
@@ -118,10 +117,10 @@ export async function POST(req: NextRequest) {
     // ── 5. Wallet update ───────────────────────────────────────────────────────
     if (actualPaid > 0) {
       const walletResult = await updateWallet(
-        supabase, company_id,
+        admin, company_id,
         -actualPaid,   // negative = outgoing cash
         `مشتريات - فاتورة ${invoice_number}`,
-        purchase.id, 'purchase', 'cash',
+        purchase.id, 'purchase', 'cash', wallet_id || undefined,
       )
       if (!walletResult.ok) {
         console.error('Wallet update failed:', walletResult.error)

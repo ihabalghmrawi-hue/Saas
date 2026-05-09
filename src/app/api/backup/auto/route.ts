@@ -5,14 +5,15 @@ import { createClient } from '@/lib/supabase/server'
 import {
   collectBackupData, uploadBackup, buildStoragePath,
 } from '@/lib/backup-engine'
+import { getCompanyId } from '@/lib/tenant'
 
-const COMPANY_ID    = process.env.NEXT_PUBLIC_COMPANY_ID    || 'default'
 const BUSINESS_TYPE = process.env.NEXT_PUBLIC_BUSINESS_TYPE || 'retail'
 const CRON_SECRET   = process.env.CRON_SECRET               || ''
 
 const MIN_INTERVAL_HOURS = 22 // don't run more than once per ~day
 
 export async function POST(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   // Verify cron secret
   const auth = req.headers.get('authorization')
   if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}`) {

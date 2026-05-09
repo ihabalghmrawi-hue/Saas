@@ -4,11 +4,12 @@ import {
   collectBackupData, uploadBackup, buildStoragePath,
   BUCKET,
 } from '@/lib/backup-engine'
+import { getCompanyId } from '@/lib/tenant'
 
-const COMPANY_ID    = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 const BUSINESS_TYPE = process.env.NEXT_PUBLIC_BUSINESS_TYPE || 'retail'
 
 export async function POST(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   const body     = await req.json().catch(() => ({}))
   const label    = body.label as string | undefined

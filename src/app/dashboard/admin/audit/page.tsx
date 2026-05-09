@@ -2,16 +2,20 @@ import { createClient } from '@/lib/supabase/server'
 import { AuditClient } from './audit-client'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getCompanyId } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 
 export default async function AuditPage() {
+  const COMPANY_ID = getCompanyId()
   const h = headers()
-  const role = h.get('x-staff-role')
-  const perms = h.get('x-staff-permissions') || ''
+  const dec  = (v: string | null, fb = '') => { try { return decodeURIComponent(v || fb) } catch { return v || fb } }
+  const role = dec(h.get('x-staff-role'))
+  const perms = dec(h.get('x-staff-permissions')).split(',').filter(Boolean)
 
-  if (role !== 'admin' && !perms.split(',').includes('admin.audit')) {
+  const isAdminOrOwner = role === 'admin' || role === 'owner'
+  const hasAuditPerm   = perms.includes('*') || perms.includes('admin.audit')
+  if (!isAdminOrOwner && !hasAuditPerm) {
     redirect('/dashboard')
   }
 

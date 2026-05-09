@@ -3,12 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { hardDelete } from '@/lib/data-lifecycle'
 import { createClient } from '@/lib/supabase/server'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 type Ctx = { params: { type: string; id: string } }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
+  const COMPANY_ID = getCompanyId()
   const h         = headers()
   const staffName = h.get('x-staff-name') || 'system'
 

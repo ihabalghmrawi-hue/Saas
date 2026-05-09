@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { calculateRentalPrice, selectRule, PricingRule } from '@/lib/rental-pricing'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export async function POST(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   const { dress_id, start_date, end_date } = await req.json()
   if (!dress_id || !start_date || !end_date)
     return NextResponse.json({ error: 'dress_id, start_date, end_date required' }, { status: 400 })

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 // POST /api/customers/[id]/payment — record a debt payment
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const COMPANY_ID = getCompanyId()
   try {
     const { amount, method, notes } = await req.json()
     if (!amount || amount <= 0) return NextResponse.json({ error: 'المبلغ غير صحيح' }, { status: 400 })

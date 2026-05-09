@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Plus, Search, DollarSign, Edit, Trash2, X, Check, Loader2 } from 'lucide-react'
+import { Plus, Search, DollarSign, Edit, Trash2, X, Check, Loader2, Tag, Sparkles } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import type { Expense, ExpenseCategory } from '@/types/erp'
@@ -10,9 +10,11 @@ interface ExpensesClientProps { expenses: Expense[]; categories: ExpenseCategory
 
 const emptyForm = { description: '', amount: '', category_id: '', expense_date: new Date().toISOString().split('T')[0], payment_method: 'cash', reference: '', }
 
-export function ExpensesClient({ expenses: initial, categories, companyId, currency }: ExpensesClientProps) {
-  const [expenses, setExpenses] = useState(initial)
-  const [search, setSearch] = useState('')
+export function ExpensesClient({ expenses: initial, categories: initialCats, companyId, currency }: ExpensesClientProps) {
+  const [categories, setCategories] = useState<ExpenseCategory[]>(initialCats)
+  const [expenses, setExpenses]     = useState(initial)
+  const [search, setSearch]         = useState('')
+  const [seedingCats, setSeedingCats] = useState(false)
   const [filterCategory, setFilterCategory] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -61,6 +63,20 @@ export function ExpensesClient({ expenses: initial, categories, companyId, curre
     if (res.ok) setExpenses(prev => prev.filter(e => e.id !== id))
   }
 
+  const seedCategories = async () => {
+    setSeedingCats(true)
+    const res = await fetch('/api/expense-categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'seed' }),
+    })
+    if (res.ok) {
+      const catRes = await fetch('/api/expense-categories')
+      if (catRes.ok) setCategories(await catRes.json())
+    }
+    setSeedingCats(false)
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -68,9 +84,18 @@ export function ExpensesClient({ expenses: initial, categories, companyId, curre
           <h1 className="text-xl font-bold">المصروفات</h1>
           <p className="text-sm text-muted-foreground">{expenses.length} مصروف</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90">
-          <Plus className="w-4 h-4" />مصروف جديد
-        </button>
+        <div className="flex gap-2">
+          {categories.length === 0 && (
+            <button onClick={seedCategories} disabled={seedingCats}
+              className="flex items-center gap-2 border border-primary/30 text-primary px-3 py-2 rounded-lg text-sm font-medium hover:bg-primary/10 disabled:opacity-50">
+              {seedingCats ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              إضافة فئات افتراضية
+            </button>
+          )}
+          <button onClick={openNew} className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90">
+            <Plus className="w-4 h-4" />مصروف جديد
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, ArrowUpDown, TrendingUp, TrendingDown, Package } from 'lucide-react'
+import { Search, ArrowUpDown, TrendingUp, TrendingDown, Package, Plus, Loader2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
@@ -24,11 +24,25 @@ const TYPE_LABELS: Record<string, { label: string; color: string; dir: 'in' | 'o
   opening: { label: 'رصيد افتتاحي', color: 'text-gray-600 bg-gray-50 dark:bg-gray-900/20', dir: 'in' },
 }
 
-export function MovementsClient({ movements, products, warehouses, companyId, currency }: MovementsClientProps) {
+const ADJUST_TYPES = [
+  { value: 'adjustment',   label: 'تسوية مخزون' },
+  { value: 'opening',      label: 'رصيد افتتاحي' },
+  { value: 'transfer_in',  label: 'تحويل وارد'   },
+  { value: 'transfer_out', label: 'تحويل صادر'   },
+]
+
+export function MovementsClient({ movements: initialMovements, products, warehouses, companyId, currency }: MovementsClientProps) {
+  const [movements, setMovements] = useState(initialMovements)
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('')
   const [filterProduct, setFilterProduct] = useState('')
   const [filterWarehouse, setFilterWarehouse] = useState('')
+  const [showAdjust, setShowAdjust] = useState(false)
+  const [adjLoading, setAdjLoading] = useState(false)
+  const [adjError, setAdjError] = useState('')
+  const [adjForm, setAdjForm] = useState({
+    product_id: '', warehouse_id: '', type: 'adjustment', quantity: '', notes: '',
+  })
 
   const filtered = useMemo(() => movements.filter(m => {
     const productName = (m.products?.name_ar || m.products?.name || '').toLowerCase()
@@ -39,14 +53,59 @@ export function MovementsClient({ movements, products, warehouses, companyId, cu
     return matchSearch && matchType && matchProduct && matchWarehouse
   }), [movements, search, filterType, filterProduct, filterWarehouse])
 
-  const totalIn = filtered.filter(m => TYPE_LABELS[m.type]?.dir === 'in').reduce((s, m) => s + Math.abs(m.quantity), 0)
+  const totalIn  = filtered.filter(m => TYPE_LABELS[m.type]?.dir === 'in' ).reduce((s, m) => s + Math.abs(m.quantity), 0)
   const totalOut = filtered.filter(m => TYPE_LABELS[m.type]?.dir === 'out').reduce((s, m) => s + Math.abs(m.quantity), 0)
+
+  const handleAdjust = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAdjLoading(true); setAdjError('')
+    const res = await fetch('/api/inventory/adjust', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product_id:   adjForm.product_id,
+        warehouse_id: adjForm.warehouse_id,
+        type:         adjForm.type,
+        quantity:     parseFloat(adjForm.quantity),
+        notes:        adjForm.notes || null,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) { setAdjError(data.error || 'حدث خطأ'); setAdjLoading(false); return }
+
+    // Prepend the new movement to local state
+    const product   = products.find(p => p.id === adjForm.product_id)
+    const warehouse = warehouses.find(w => w.id === adjForm.warehouse_id)
+    setMovements(prev => [{
+      id:              Date.now().toString(),
+      product_id:      adjForm.product_id,
+      warehouse_id:    adjForm.warehouse_id,
+      type:            adjForm.type,
+      quantity:        parseFloat(adjForm.quantity),
+      quantity_before: (data.quantity_after ?? 0) - parseFloat(adjForm.quantity),
+      quantity_after:  data.quantity_after ?? 0,
+      notes:           adjForm.notes,
+      created_at:      new Date().toISOString(),
+      products:        product   ? { name_ar: product.name_ar,   name: product.name   } : null,
+      warehouses:      warehouse ? { name_ar: warehouse.name_ar, name: warehouse.name } : null,
+    }, ...prev])
+
+    setShowAdjust(false)
+    setAdjForm({ product_id: '', warehouse_id: '', type: 'adjustment', quantity: '', notes: '' })
+    setAdjLoading(false)
+  }
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold">حركة المخزون</h1>
-        <p className="text-sm text-muted-foreground">{movements.length} حركة</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold">حركة المخزون</h1>
+          <p className="text-sm text-muted-foreground">{movements.length} حركة</p>
+        </div>
+        <button onClick={() => { setAdjError(''); setShowAdjust(true) }}
+          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
+          <Plus className="w-4 h-4" />تسوية يدوية
+        </button>
       </div>
 
       {/* Stats */}
@@ -148,6 +207,89 @@ export function MovementsClient({ movements, products, warehouses, companyId, cu
           </table>
         </div>
       </div>
+
+      {/* ── Manual Adjustment Modal ──────────────────────────────────────────── */}
+      {showAdjust && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-2xl shadow-2xl border w-full max-w-md">
+            <div className="p-6 border-b flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                <ArrowUpDown className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-foreground">تسوية يدوية للمخزون</h3>
+                <p className="text-xs text-muted-foreground">تعديل كمية المنتج في المستودع</p>
+              </div>
+            </div>
+            <form onSubmit={handleAdjust} className="p-6 space-y-4">
+              {adjError && (
+                <p className="text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-lg p-3">{adjError}</p>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground block mb-1.5">المنتج</label>
+                <select value={adjForm.product_id} onChange={e => setAdjForm({...adjForm, product_id: e.target.value})}
+                  required
+                  className="w-full border border-input bg-background rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
+                  <option value="">اختر المنتج...</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.id}>{p.name_ar || p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground block mb-1.5">المستودع</label>
+                <select value={adjForm.warehouse_id} onChange={e => setAdjForm({...adjForm, warehouse_id: e.target.value})}
+                  required
+                  className="w-full border border-input bg-background rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
+                  <option value="">اختر المستودع...</option>
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.id}>{w.name_ar || w.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground block mb-1.5">نوع الحركة</label>
+                  <select value={adjForm.type} onChange={e => setAdjForm({...adjForm, type: e.target.value})}
+                    className="w-full border border-input bg-background rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary">
+                    {ADJUST_TYPES.map(t => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground block mb-1.5">الكمية</label>
+                  <input type="number" value={adjForm.quantity} onChange={e => setAdjForm({...adjForm, quantity: e.target.value})}
+                    placeholder="0" min="0.001" step="0.001" required
+                    className="w-full border border-input bg-background rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" dir="ltr" />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-muted-foreground block mb-1.5">ملاحظات</label>
+                <input value={adjForm.notes} onChange={e => setAdjForm({...adjForm, notes: e.target.value})}
+                  placeholder="سبب التسوية..."
+                  className="w-full border border-input bg-background rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary" />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowAdjust(false)}
+                  className="flex-1 border border-input bg-background rounded-lg py-2.5 text-sm font-medium hover:bg-accent transition-colors">
+                  إلغاء
+                </button>
+                <button type="submit" disabled={adjLoading}
+                  className="flex-1 bg-primary text-primary-foreground rounded-lg py-2.5 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors">
+                  {adjLoading ? <><Loader2 className="w-4 h-4 animate-spin" />جاري...</> : 'تأكيد التسوية'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

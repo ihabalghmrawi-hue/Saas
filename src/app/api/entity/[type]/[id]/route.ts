@@ -5,13 +5,13 @@ import { headers } from 'next/headers'
 import { getEntity } from '@/lib/entity-registry'
 import { softDelete, checkDependencies } from '@/lib/data-lifecycle'
 import { createClient } from '@/lib/supabase/server'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 type Ctx = { params: { type: string; id: string } }
 
 // GET — preview dependencies before deleting
 export async function GET(_req: NextRequest, { params }: Ctx) {
+  const COMPANY_ID = getCompanyId()
   const meta = getEntity(params.type)
   if (!meta) return NextResponse.json({ error: 'نوع الكيان غير معروف' }, { status: 400 })
 
@@ -38,6 +38,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 
 // DELETE — soft delete
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
+  const COMPANY_ID = getCompanyId()
   const h         = headers()
   const deletedBy = h.get('x-staff-name') || 'system'
 

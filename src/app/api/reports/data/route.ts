@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { headers } from 'next/headers'
-
-function getCompanyId() {
-  try {
-    const h = headers()
-    return h.get('x-tenant-id') || process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-  } catch {
-    return process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-  }
-}
+import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
   const days = parseInt(req.nextUrl.searchParams.get('days') || '30')

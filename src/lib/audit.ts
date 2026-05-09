@@ -32,6 +32,9 @@ export type AuditAction =
   | 'backup.created' | 'backup.restored'
   // Settings
   | 'settings.updated' | 'branding.updated'
+  // Wallet & Inventory
+  | 'wallet.created' | 'wallet.deposit' | 'wallet.withdrawal'
+  | 'inventory.adjusted'
 
 export type AuditSeverity = 'info' | 'warning' | 'critical'
 
@@ -63,8 +66,9 @@ export async function logAudit(params: AuditParams): Promise<void> {
     const h         = headers()
     // Use the header set by middleware — this is per-tenant, not global
     const companyId = params.companyId || h.get('x-tenant-id') || process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-    const staffId   = h.get('x-staff-id')   || null
-    const staffName = h.get('x-staff-name') || null
+    const staffId   = h.get('x-staff-id') || null
+    const rawName   = h.get('x-staff-name') || null
+    const staffName = rawName ? (() => { try { return decodeURIComponent(rawName) } catch { return rawName } })() : null
     const ipAddress = h.get('x-forwarded-for')?.split(',')[0]?.trim() || null
     const userAgent = h.get('user-agent') || null
     const severity  = params.severity ?? SEVERITY_MAP[params.action] ?? 'info'

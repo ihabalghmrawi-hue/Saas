@@ -4,13 +4,13 @@ import { getFeatures } from '@/lib/features'
 import { getDefaultReportMode, getAvailableModes } from '@/lib/report-engine'
 import { UnifiedReportsClient } from './unified-reports-client'
 import type { SalesReportData, RentalReportData, ReportInsight } from '@/lib/report-engine'
+import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-const CURRENCY   = process.env.NEXT_PUBLIC_CURRENCY   || 'SAR'
 
 // ── Sales data fetcher ────────────────────────────────────────────────────────
 async function fetchSalesData(days: number): Promise<SalesReportData> {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   const since    = new Date(Date.now() - days * 86400000).toISOString()
   const today    = new Date().toISOString().slice(0, 10)
@@ -97,6 +97,7 @@ async function fetchRentalData(days: number): Promise<RentalReportData> {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default async function ReportsPage() {
+  const CURRENCY    = getCurrency()
   const h           = headers()
   const features    = getFeatures(h.get('x-business-type') || 'retail')
   const defaultMode = getDefaultReportMode(features.businessType)

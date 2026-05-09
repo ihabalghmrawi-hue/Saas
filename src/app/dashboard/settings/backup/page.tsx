@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { BackupClient } from './backup-client'
 import { BACKUP_TABLES } from '@/lib/backup-engine'
+import { getCompanyId } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 
 export default async function BackupPage() {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
 
   const { data: snapshots } = await supabase

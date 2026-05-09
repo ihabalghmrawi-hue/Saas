@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { TransactionForm } from '@/components/forms/transaction-form'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'SAR'
+import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export default async function NewTransactionPage() {
+  const CURRENCY = getCurrency()
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
 
   const [{ data: categories }, { data: parties }, { data: wallets }] = await Promise.all([

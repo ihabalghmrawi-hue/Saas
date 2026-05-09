@@ -4,10 +4,10 @@ import {
   downloadBackup, validateBackupPayload, restoreBackupData,
 } from '@/lib/backup-engine'
 import type { BackupPayload } from '@/lib/backup-engine'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export async function POST(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   const body     = await req.json().catch(() => ({}))
 

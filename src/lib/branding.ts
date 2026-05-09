@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export interface Branding {
   company_id: string
@@ -18,9 +17,9 @@ export interface Branding {
 }
 
 export const DEFAULT_BRANDING: Branding = {
-  company_id: COMPANY_ID,
-  name: process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي',
-  name_ar: process.env.NEXT_PUBLIC_COMPANY_NAME || 'شركتي',
+  company_id: 'default',
+  name:    '',
+  name_ar: '',
   phone: '',
   address: '',
   tax_number: '',
@@ -34,13 +33,14 @@ export const DEFAULT_BRANDING: Branding = {
 
 export async function getBranding(): Promise<Branding> {
   try {
-    const supabase = createClient()
+    const companyId = getCompanyId()
+    const supabase  = createClient()
     const { data } = await supabase
       .from('branding')
       .select('*')
-      .eq('company_id', COMPANY_ID)
-      .single()
-    return data ? { ...DEFAULT_BRANDING, ...data } : DEFAULT_BRANDING
+      .eq('company_id', companyId)
+      .maybeSingle()
+    return data ? { ...DEFAULT_BRANDING, ...data } : { ...DEFAULT_BRANDING, company_id: companyId }
   } catch {
     return DEFAULT_BRANDING
   }

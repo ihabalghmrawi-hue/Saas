@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTheme } from 'next-themes'
+import { Building2, Bell, Shield, Database, Loader2, CheckCircle, AlertCircle, Moon, Sun, Globe, DollarSign, Store, Palette } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, Bell, Shield, Database, Loader2, CheckCircle, Moon, Sun, Globe, DollarSign, Store, Palette } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BUSINESS_TYPES, getFeatures, type BusinessType } from '@/lib/features'
 import { BrandingSettings } from '@/components/branding-settings'
@@ -26,6 +26,7 @@ export function SettingsClient({ company, user, role, currentBusinessType, brand
   const [savingBizType, setSavingBizType] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     name: company.name || '',
@@ -48,37 +49,55 @@ export function SettingsClient({ company, user, role, currentBusinessType, brand
 
   const saveGeneral = async () => {
     setSaving(true)
-    const supabase = createClient()
-    await supabase.from('companies').update({
-      name: form.name,
-      name_ar: form.name_ar || null,
-      email: form.email || null,
-      phone: form.phone || null,
-      address: form.address || null,
-      tax_number: form.tax_number || null,
-      currency: form.currency,
-      language: form.language,
-      timezone: form.timezone,
-    }).eq('id', company.id)
+    setSaveError(null)
+    const res = await fetch('/api/company', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name:       form.name       || null,
+        name_ar:    form.name_ar    || null,
+        email:      form.email      || null,
+        phone:      form.phone      || null,
+        address:    form.address    || null,
+        tax_number: form.tax_number || null,
+        currency:   form.currency,
+        language:   form.language,
+        timezone:   form.timezone,
+      }),
+    })
     setSaving(false)
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      setSaveError(d.error || 'فشل الحفظ')
+      return
+    }
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setTimeout(() => setSaved(false), 3000)
     router.refresh()
   }
 
   const saveNotifications = async () => {
     setSaving(true)
-    const supabase = createClient()
-    await supabase.from('companies').update({
-      settings: {
-        ...company.settings,
-        notifications_enabled: notifications,
-        backup_enabled: backupEnabled,
-      }
-    }).eq('id', company.id)
+    setSaveError(null)
+    const res = await fetch('/api/company', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        settings: {
+          ...company.settings,
+          notifications_enabled: notifications,
+          backup_enabled: backupEnabled,
+        },
+      }),
+    })
     setSaving(false)
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      setSaveError(d.error || 'فشل الحفظ')
+      return
+    }
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setTimeout(() => setSaved(false), 3000)
   }
 
   const [resetting, setResetting] = useState(false)
@@ -147,6 +166,12 @@ export function SettingsClient({ company, user, role, currentBusinessType, brand
             <div className="mb-4 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 text-sm p-3 rounded-lg border border-emerald-200">
               <CheckCircle className="w-4 h-4" />
               تم حفظ الإعدادات بنجاح!
+            </div>
+          )}
+          {saveError && (
+            <div className="mb-4 flex items-center gap-2 bg-red-50 dark:bg-red-900/20 text-red-600 text-sm p-3 rounded-lg border border-red-200">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {saveError}
             </div>
           )}
 

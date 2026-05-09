@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { CustomerDetailClient } from './customer-detail-client'
 import { notFound } from 'next/navigation'
+import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'SAR'
 
 export default async function CustomerDetailPage({ params }: { params: { id: string } }) {
+  const CURRENCY = getCurrency()
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
 
   const [{ data: customer }, { data: sales }, { data: transactions }] = await Promise.all([

@@ -7,7 +7,7 @@ import {
   BarChart3, Settings, BookOpen, Wallet, Receipt, DollarSign, Tag,
   Warehouse, TrendingUp, RotateCcw, Clock, Shield, UserCog, LogOut,
   Layers, Shirt, Calendar, CalendarDays, Trash2 as Trash2Icon, AlertOctagon,
-  ShieldCheck,
+  ShieldCheck, Building2, Scale, FileText, PieChart, GitBranch, CalendarRange,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import type { Features } from '@/lib/features'
@@ -30,7 +30,8 @@ interface SidebarProps {
 
 function can(staff: StaffInfo | undefined, perm: string): boolean {
   if (!staff) return true
-  if (staff.role === 'admin') return true
+  if (staff.role === 'admin' || staff.role === 'owner') return true
+  if (staff.permissions.includes('*')) return true
   return staff.permissions.includes(perm)
 }
 
@@ -75,17 +76,29 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
     {
       label: 'المستودع',
       items: [
-        { label: 'المنتجات', href: '/dashboard/inventory', icon: Package, show: features.showInventory && can(staff, 'inventory.view') },
-        { label: 'حركة المخزون', href: '/dashboard/inventory/movements', icon: Warehouse, show: features.showInventory && can(staff, 'inventory.view') },
-        { label: 'متغيرات المنتجات', href: '/dashboard/inventory/variants', icon: Layers, show: false },
+        { label: 'المنتجات',     href: '/dashboard/inventory',           icon: Package,    show: features.showInventory && can(staff, 'inventory.view') },
+        { label: 'المخازن',      href: '/dashboard/warehouses',          icon: Building2,  show: features.showInventory && can(staff, 'inventory.view') },
+        { label: 'حركة المخزون', href: '/dashboard/inventory/movements', icon: Warehouse,  show: features.showInventory && can(staff, 'inventory.view') },
+        { label: 'متغيرات المنتجات', href: '/dashboard/inventory/variants', icon: Layers,  show: false },
       ],
     },
     {
       label: 'المالية',
       items: [
-        { label: 'المصروفات', href: '/dashboard/expenses', icon: DollarSign, show: can(staff, 'expenses.view') },
-        { label: 'قيود المحاسبة', href: '/dashboard/journal', icon: BookOpen, show: can(staff, 'reports.view') },
-        { label: 'الصندوق', href: '/dashboard/wallet', icon: Wallet, show: can(staff, 'reports.view') },
+        { label: 'المصروفات',  href: '/dashboard/expenses', icon: DollarSign, show: can(staff, 'expenses.view') },
+        { label: 'الصندوق',    href: '/dashboard/wallet',   icon: Wallet,     show: can(staff, 'reports.view')  },
+      ],
+    },
+    {
+      label: 'المحاسبة',
+      items: [
+        { label: 'لوحة المحاسبة',     href: '/dashboard/accounting',                   icon: Scale,         show: can(staff, 'reports.view') },
+        { label: 'القيود اليومية',     href: '/dashboard/accounting/journal',           icon: BookOpen,      show: can(staff, 'reports.view') },
+        { label: 'دفتر الأستاذ',       href: '/dashboard/accounting/ledger',            icon: FileText,      show: can(staff, 'reports.view') },
+        { label: 'ميزان المراجعة',     href: '/dashboard/accounting/trial-balance',     icon: GitBranch,     show: can(staff, 'reports.view') },
+        { label: 'القوائم المالية',    href: '/dashboard/accounting/statements',        icon: PieChart,      show: can(staff, 'reports.view') },
+        { label: 'شجرة الحسابات',     href: '/dashboard/accounting/coa',               icon: TrendingUp,    show: can(staff, 'reports.view') },
+        { label: 'الفترات المالية',    href: '/dashboard/accounting/periods',           icon: CalendarRange, show: can(staff, 'reports.view') },
       ],
     },
     {

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export async function GET() {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   const { data } = await supabase
     .from('shifts')
@@ -17,6 +17,7 @@ export async function GET() {
 // Open shift
 export async function POST(req: NextRequest) {
   try {
+    const COMPANY_ID = getCompanyId()
     const { cashier_name, opening_cash } = await req.json()
     if (!cashier_name) return NextResponse.json({ error: 'اسم الكاشير مطلوب' }, { status: 400 })
 
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
 // Close shift
 export async function PATCH(req: NextRequest) {
   try {
+    const COMPANY_ID = getCompanyId()
     const { shift_id, closing_cash, notes } = await req.json()
     const supabase = createClient()
 

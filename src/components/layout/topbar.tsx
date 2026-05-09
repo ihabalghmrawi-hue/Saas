@@ -3,6 +3,7 @@
 import { Bell, Moon, Sun, Search, Settings } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { usePathname, useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import type { Features } from '@/lib/features'
 
 const pageTitles: Record<string, string> = {
@@ -39,6 +40,8 @@ export function TopBar({ company, user, staff, features }: TopBarProps) {
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const title = pageTitles[pathname] || 'لوحة التحكم'
 
@@ -63,8 +66,9 @@ export function TopBar({ company, user, staff, features }: TopBarProps) {
         <button
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className="p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          suppressHydrationWarning
         >
-          {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          {mounted && theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
 
         <button className="relative p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors">

@@ -2,12 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import { InventoryClient } from './inventory-client'
 import { headers } from 'next/headers'
 import { getFeatures } from '@/lib/features'
+import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
 
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-
 export default async function InventoryPage() {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   const businessType = headers().get('x-business-type') || 'retail'
   const features = getFeatures(businessType)
@@ -30,7 +30,7 @@ export default async function InventoryPage() {
       units={units || []}
       warehouses={warehouses || []}
       companyId={COMPANY_ID}
-      currency={process.env.NEXT_PUBLIC_CURRENCY || 'SAR'}
+      currency={getCurrency()}
       features={features}
     />
   )

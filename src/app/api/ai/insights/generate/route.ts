@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { computeMetrics, generateRuleBasedInsights, type InsightItem } from '@/lib/insights-engine'
+import { getCompanyId } from '@/lib/tenant'
 
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 const OPENAI_KEY = process.env.OPENAI_API_KEY
 
 async function enhanceWithAI(metrics: any, ruleInsights: InsightItem[]): Promise<InsightItem[]> {
@@ -61,6 +61,7 @@ ${ruleInsights.map(i => `- ${i.title}: ${i.message}`).join('\n')}
 
 export async function POST() {
   try {
+    const COMPANY_ID = getCompanyId()
     const supabase = createClient()
 
     // Compute metrics
@@ -99,6 +100,7 @@ export async function POST() {
 }
 
 export async function GET() {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   const { data } = await supabase
     .from('ai_insights')

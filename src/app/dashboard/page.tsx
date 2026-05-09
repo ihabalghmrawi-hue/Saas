@@ -11,16 +11,18 @@ import {
 } from 'lucide-react'
 import { InsightsWidget }       from '@/components/insights-widget'
 import { DashboardOnboarding }  from '@/components/onboarding/dashboard-onboarding'
+import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-const CURRENCY   = process.env.NEXT_PUBLIC_CURRENCY   || 'SAR'
 
 export default async function DashboardPage() {
-  const supabase  = createClient()
-  const h         = headers()
-  const features  = getFeatures(h.get('x-business-type') || 'retail')
-  const staffName = h.get('x-staff-name') || 'المدير'
+  const COMPANY_ID = getCompanyId()
+  const CURRENCY   = getCurrency()
+  const supabase   = createClient()
+  const h          = headers()
+  const dec = (v: string | null, fb = '') => { try { return decodeURIComponent(v || fb) } catch { return v || fb } }
+  const features  = getFeatures(dec(h.get('x-business-type'), 'retail'))
+  const staffName = dec(h.get('x-staff-name'), 'المدير')
 
   const today      = new Date().toISOString().slice(0, 10)
   const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { BUSINESS_TYPES, type BusinessType } from '@/lib/features'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export async function POST(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   try {
     const { business_type, reset = false } = await req.json()
 

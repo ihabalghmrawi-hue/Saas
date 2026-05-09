@@ -1,16 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import { TransactionsClient } from './transactions-client'
+import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'SAR'
 
 export default async function TransactionsPage({
   searchParams,
 }: {
   searchParams: { type?: string; page?: string; search?: string; category?: string }
 }) {
+  const CURRENCY = getCurrency()
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
 
   const page = parseInt(searchParams.page || '1')

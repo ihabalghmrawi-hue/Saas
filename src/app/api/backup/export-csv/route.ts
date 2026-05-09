@@ -3,10 +3,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { rowsToCSV, BACKUP_TABLES } from '@/lib/backup-engine'
 import type { BackupTable } from '@/lib/backup-engine'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   const table = req.nextUrl.searchParams.get('table') as BackupTable | null
 
   if (!table || !BACKUP_TABLES.includes(table as any)) {

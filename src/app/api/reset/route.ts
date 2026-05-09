@@ -2,12 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { headers } from 'next/headers'
 import { factoryReset } from '@/lib/data-lifecycle'
+import { getCompanyId } from '@/lib/tenant'
 
-const COMPANY_ID    = process.env.NEXT_PUBLIC_COMPANY_ID    || 'default'
 const BUSINESS_TYPE = process.env.NEXT_PUBLIC_BUSINESS_TYPE || 'retail'
 const CONFIRM_PHRASE = 'DELETE MY BUSINESS DATA'
 
 export async function POST(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   const h         = headers()
   const staffName = h.get('x-staff-name') || ''
   const staffRole = h.get('x-staff-role')  || ''

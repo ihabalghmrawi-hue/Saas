@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { BookingsClient } from './bookings-client'
+import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'SAR'
 
 export default async function BookingsPage() {
+  const CURRENCY = getCurrency()
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   const [{ data: orders }, { data: dresses }] = await Promise.all([
     supabase.from('rental_orders')

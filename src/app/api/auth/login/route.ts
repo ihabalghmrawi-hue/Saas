@@ -4,11 +4,12 @@ import { signSession, hashPin, SESSION_COOKIE } from '@/lib/session'
 import { PinLoginSchema }            from '@/validators/auth'
 import { ok, err, Errors, validationError } from '@/lib/api-response'
 import type { PinLoginResponse }     from '@/validators/auth'
+import { getCompanyId } from '@/lib/tenant'
 
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 const ADMIN_PIN  = process.env.ADMIN_PIN || '1234'
 
 export async function POST(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   // 1. Parse & validate input
   let body: unknown
   try { body = await req.json() } catch {
@@ -43,11 +44,11 @@ export async function POST(req: NextRequest) {
     return res
   }
 
-  // 3. Look up staff by PIN hash
-  const supabase         = createClient()
-  const { data: staff }  = await supabase
+  // 3. Look up staff by PIN hash (flat query — no joins to avoid schema cache issues)
+  const supabase        = createClient()
+  const { data: staff } = await supabase
     .from('staff_users')
-    .select('*, staff_roles(name, name_ar, role_permissions(permission_code))')
+    .select('id, name, role_id, is_active')
     .eq('company_id', COMPANY_ID)
     .eq('pin_hash', pinHash)
     .eq('is_active', true)
@@ -55,13 +56,34 @@ export async function POST(req: NextRequest) {
 
   if (!staff) return err('INVALID_PIN', 'رقم سري خاطئ', 401)
 
-  const role: any         = staff.staff_roles
-  const permissions: string[] = (role?.role_permissions ?? []).map((rp: any) => rp.permission_code)
+  // Fetch role separately — try with permissions JSONB column, fall back without
+  let role: { name?: string; name_ar?: string; permissions?: string[] } = {}
+  if (staff.role_id) {
+    const { data: r1, error: e1 } = await supabase
+      .from('staff_roles')
+      .select('id, name, name_ar, permissions')
+      .eq('id', staff.role_id)
+      .single()
+
+    if (!e1 && r1) {
+      role = { name: r1.name, name_ar: r1.name_ar, permissions: Array.isArray(r1.permissions) ? r1.permissions : [] }
+    } else {
+      // permissions column missing — fetch without it
+      const { data: r2 } = await supabase
+        .from('staff_roles')
+        .select('id, name, name_ar')
+        .eq('id', staff.role_id)
+        .single()
+      if (r2) role = { name: r2.name, name_ar: r2.name_ar, permissions: [] }
+    }
+  }
+
+  const permissions: string[] = role.permissions ?? []
 
   const session = {
     id:          staff.id,
     name:        staff.name,
-    role:        role?.name || 'cashier',
+    role:        role.name || 'cashier',
     permissions,
     companyId:   COMPANY_ID,
     loginAt:     Date.now(),

@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export async function GET() {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   const { data, error } = await supabase
     .from('backup_snapshots')

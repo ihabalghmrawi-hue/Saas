@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { BUSINESS_TYPE_COOKIE, BusinessType, BUSINESS_TYPES } from '@/lib/features'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export async function GET() {
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   const { data } = await supabase
     .from('company_settings')
@@ -15,6 +15,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   const { business_type } = await req.json()
   if (!BUSINESS_TYPES.includes(business_type as BusinessType)) {
     return NextResponse.json({ error: 'نوع غير صالح' }, { status: 400 })

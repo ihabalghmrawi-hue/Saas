@@ -1,11 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { RentalCalendarClient } from './rental-calendar-client'
+import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-const CURRENCY = process.env.NEXT_PUBLIC_CURRENCY || 'SAR'
 
 export default async function RentalCalendarPage() {
+  const CURRENCY = getCurrency()
+  const COMPANY_ID = getCompanyId()
   const supabase = createClient()
   const [{ data: dresses }, { data: orders }] = await Promise.all([
     supabase.from('dresses')

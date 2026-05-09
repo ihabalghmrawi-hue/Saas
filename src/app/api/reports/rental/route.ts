@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { RentalReportData, ReportInsight } from '@/lib/report-engine'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   const days = parseInt(req.nextUrl.searchParams.get('days') || '30')
   const supabase = createClient()
 

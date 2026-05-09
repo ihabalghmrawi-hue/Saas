@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
+import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
+  const COMPANY_ID = getCompanyId()
   const start = req.nextUrl.searchParams.get('start')
   const end = req.nextUrl.searchParams.get('end')
   const excludeId = req.nextUrl.searchParams.get('exclude')

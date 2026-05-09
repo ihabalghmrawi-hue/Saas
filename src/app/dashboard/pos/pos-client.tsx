@@ -26,6 +26,15 @@ interface Payment {
   label: string
 }
 
+interface CompanyInfo {
+  name:        string
+  name_ar?:    string
+  phone?:      string
+  address?:    string
+  tax_number?: string
+  logo_url?:   string
+}
+
 interface POSClientProps {
   products: any[]
   categories: any[]
@@ -34,6 +43,7 @@ interface POSClientProps {
   defaultWarehouseId: string | null
   companyId: string
   currency: string
+  company?: CompanyInfo | null
 }
 
 interface SaleReceipt {
@@ -60,7 +70,7 @@ const PAYMENT_METHODS = [
 
 const QUICK_AMOUNTS = [10, 20, 50, 100, 200, 500]
 
-export function POSClient({ products, categories, customers, warehouses, defaultWarehouseId, companyId, currency }: POSClientProps) {
+export function POSClient({ products, categories, customers, warehouses, defaultWarehouseId, companyId, currency, company }: POSClientProps) {
   const [cart, setCart] = useState<CartItem[]>([])
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
@@ -77,7 +87,10 @@ export function POSClient({ products, categories, customers, warehouses, default
   const [receipt, setReceipt] = useState<SaleReceipt | null>(null)
   const [warehouseId] = useState(defaultWarehouseId)
   const [showShortcuts, setShowShortcuts] = useState(false)
-  const [companyName] = useState(process.env.NEXT_PUBLIC_COMPANY_NAME || 'المتجر')
+  const companyName    = company?.name_ar || company?.name || process.env.NEXT_PUBLIC_COMPANY_NAME || 'المتجر'
+  const companyPhone   = company?.phone   || ''
+  const companyAddress = company?.address || ''
+  const companyTax     = company?.tax_number || ''
 
   const searchRef = useRef<HTMLInputElement>(null)
   const barcodeBuffer = useRef('')
@@ -772,89 +785,125 @@ export function POSClient({ products, categories, customers, warehouses, default
 
       {/* ═══════════════ RECEIPT MODAL ═══════════════ */}
       {receipt && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-card rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto">
-            {/* Receipt Header */}
-            <div className="text-center py-6 px-4 border-b border-dashed">
-              <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Check className="w-6 h-6 text-green-600" />
-              </div>
-              <h2 className="font-bold text-lg text-foreground">{companyName}</h2>
-              <p className="text-xs text-muted-foreground mt-1">{receipt.date}</p>
-              <p className="font-mono text-sm font-bold text-primary mt-2 bg-primary/10 px-3 py-1 rounded-full inline-block">
-                {receipt.invoice_number}
-              </p>
-              {receipt.customer_name && (
-                <p className="text-xs text-muted-foreground mt-2">العميل: {receipt.customer_name}</p>
-              )}
-            </div>
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm no-print">
+          <div className="bg-white dark:bg-card rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col">
 
-            {/* Items */}
-            <div className="px-4 py-3 border-b border-dashed space-y-2">
-              {receipt.items.map((item, i) => (
-                <div key={i} className="flex justify-between items-start text-xs">
-                  <div className="flex-1 text-right ml-2">
-                    <p className="font-medium">{item.product.name_ar || item.product.name}</p>
-                    <p className="text-muted-foreground">{item.quantity} × {formatCurrency(item.unit_price, currency)}</p>
+            {/* Scrollable receipt area */}
+            <div className="overflow-y-auto flex-1">
+
+              {/* Receipt content — this div gets printed */}
+              <div className="receipt-print bg-white text-black" dir="rtl">
+
+                {/* ── Header ── */}
+                <div className="text-center py-5 px-4 border-b border-dashed border-gray-300">
+                  {company?.logo_url && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={company.logo_url} alt="logo" className="w-16 h-16 object-contain mx-auto mb-2 receipt-logo" />
+                  )}
+                  <h2 className="font-bold text-base">{companyName}</h2>
+                  {companyAddress && <p className="text-xs text-gray-500 mt-0.5">{companyAddress}</p>}
+                  {companyPhone   && <p className="text-xs text-gray-500">{companyPhone}</p>}
+                  {companyTax     && <p className="text-xs text-gray-500">الرقم الضريبي: {companyTax}</p>}
+                  <div className="mt-3 pt-3 border-t border-dashed border-gray-300">
+                    <p className="font-mono text-sm font-bold">{receipt.invoice_number}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{receipt.date}</p>
+                    {receipt.customer_name && (
+                      <p className="text-xs text-gray-600 mt-1">العميل: <span className="font-medium">{receipt.customer_name}</span></p>
+                    )}
                   </div>
-                  <span className="font-bold whitespace-nowrap">{formatCurrency(item.total, currency)}</span>
                 </div>
-              ))}
+
+                {/* ── Items ── */}
+                <div className="px-4 py-3 border-b border-dashed border-gray-300">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-200 text-gray-500">
+                        <th className="text-right pb-1.5 font-medium">الصنف</th>
+                        <th className="text-center pb-1.5 font-medium">الكمية</th>
+                        <th className="text-center pb-1.5 font-medium">السعر</th>
+                        <th className="text-left pb-1.5 font-medium">المجموع</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {receipt.items.map((item, i) => (
+                        <tr key={i} className="border-b border-gray-100 last:border-0">
+                          <td className="py-1.5 pr-0 font-medium max-w-[120px]">
+                            <span className="block truncate">{item.product.name_ar || item.product.name}</span>
+                            {item.discount_percent > 0 && (
+                              <span className="text-gray-400 text-[10px]">خصم {item.discount_percent}%</span>
+                            )}
+                          </td>
+                          <td className="py-1.5 text-center text-gray-600">{item.quantity}</td>
+                          <td className="py-1.5 text-center text-gray-600">{item.unit_price.toFixed(2)}</td>
+                          <td className="py-1.5 text-left font-bold">{item.total.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* ── Totals ── */}
+                <div className="px-4 py-3 border-b border-dashed border-gray-300 space-y-1 text-xs">
+                  <div className="flex justify-between text-gray-600">
+                    <span>{receipt.subtotal.toFixed(2)} {currency}</span>
+                    <span>المجموع الفرعي</span>
+                  </div>
+                  {receipt.discount_amount > 0 && (
+                    <div className="flex justify-between text-red-600">
+                      <span>({receipt.discount_amount.toFixed(2)} {currency})</span>
+                      <span>الخصم</span>
+                    </div>
+                  )}
+                  {receipt.tax_amount > 0 && (
+                    <div className="flex justify-between text-gray-600">
+                      <span>{receipt.tax_amount.toFixed(2)} {currency}</span>
+                      <span>الضريبة</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-sm border-t border-gray-300 pt-2 mt-1">
+                    <span>{receipt.total.toFixed(2)} {currency}</span>
+                    <span>الإجمالي</span>
+                  </div>
+                </div>
+
+                {/* ── Payment ── */}
+                <div className="px-4 py-3 border-b border-dashed border-gray-300 space-y-1 text-xs">
+                  {receipt.payments.map((p, i) => (
+                    <div key={i} className="flex justify-between text-gray-600">
+                      <span>{p.amount.toFixed(2)} {currency}</span>
+                      <span>{p.label}</span>
+                    </div>
+                  ))}
+                  {receipt.change_amount > 0 && (
+                    <div className="flex justify-between font-semibold text-green-700">
+                      <span>{receipt.change_amount.toFixed(2)} {currency}</span>
+                      <span>المبلغ المُرجَع</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* ── QR / Footer ── */}
+                <div className="text-center py-4 px-4 text-xs text-gray-500 space-y-1">
+                  <p>شكراً لزيارتكم</p>
+                  <p className="text-[10px] text-gray-400">{companyName} ◆ {receipt.date}</p>
+                  {companyTax && (
+                    <p className="text-[10px] text-gray-400 border border-dashed border-gray-300 inline-block px-2 py-0.5 rounded mt-1">
+                      رقم ضريبي: {companyTax}
+                    </p>
+                  )}
+                </div>
+
+              </div>{/* end receipt-print */}
             </div>
 
-            {/* Totals */}
-            <div className="px-4 py-3 border-b border-dashed space-y-1 text-xs">
-              <div className="flex justify-between text-muted-foreground">
-                <span>{formatCurrency(receipt.subtotal, currency)}</span>
-                <span>المجموع</span>
-              </div>
-              {receipt.discount_amount > 0 && (
-                <div className="flex justify-between text-red-500">
-                  <span>- {formatCurrency(receipt.discount_amount, currency)}</span>
-                  <span>خصم</span>
-                </div>
-              )}
-              {receipt.tax_amount > 0 && (
-                <div className="flex justify-between text-muted-foreground">
-                  <span>{formatCurrency(receipt.tax_amount, currency)}</span>
-                  <span>ضريبة</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-sm border-t pt-1 mt-1">
-                <span>{formatCurrency(receipt.total, currency)}</span>
-                <span>الإجمالي</span>
-              </div>
-            </div>
-
-            {/* Payment */}
-            <div className="px-4 py-3 border-b border-dashed space-y-1 text-xs">
-              {receipt.payments.map((p, i) => (
-                <div key={i} className="flex justify-between text-muted-foreground">
-                  <span>{formatCurrency(p.amount, currency)}</span>
-                  <span>{p.label}</span>
-                </div>
-              ))}
-              {receipt.change_amount > 0 && (
-                <div className="flex justify-between text-green-600 font-medium">
-                  <span>{formatCurrency(receipt.change_amount, currency)}</span>
-                  <span>المبلغ المُرجَع</span>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="text-center py-3 text-xs text-muted-foreground border-b border-dashed">
-              شكراً لزيارتكم ♦ {companyName}
-            </div>
-
-            {/* Actions */}
-            <div className="p-4 flex gap-2">
+            {/* ── Actions (hidden when printing) ── */}
+            <div className="p-4 flex gap-2 border-t no-print">
               <button
                 onClick={() => window.print()}
                 className="flex-1 flex items-center justify-center gap-2 bg-primary text-white py-2.5 rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors"
               >
                 <Printer className="w-4 h-4" />
-                طباعة
+                طباعة الفاتورة
               </button>
               <button
                 onClick={() => { setReceipt(null); searchRef.current?.focus() }}
@@ -864,6 +913,7 @@ export function POSClient({ products, categories, customers, warehouses, default
                 فاتورة جديدة
               </button>
             </div>
+
           </div>
         </div>
       )}
@@ -899,9 +949,30 @@ export function POSClient({ products, categories, customers, warehouses, default
       {/* Print styles */}
       <style jsx global>{`
         @media print {
-          body * { visibility: hidden; }
-          .receipt-print, .receipt-print * { visibility: visible; }
-          .receipt-print { position: fixed; top: 0; left: 0; width: 80mm; }
+          /* Hide everything on the page */
+          body > * { display: none !important; }
+          /* Show only the receipt */
+          .receipt-print {
+            display: block !important;
+            position: fixed !important;
+            inset: 0 !important;
+            width: 80mm !important;
+            margin: 0 auto !important;
+            font-family: 'Courier New', monospace !important;
+            font-size: 11pt !important;
+            color: #000 !important;
+            background: #fff !important;
+            padding: 4mm !important;
+          }
+          .receipt-print * {
+            color: #000 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+          }
+          /* Hide action buttons that are inside the receipt wrapper */
+          .no-print { display: none !important; }
+          /* Logo sizing for print */
+          .receipt-logo { max-width: 40mm !important; height: auto !important; }
         }
       `}</style>
     </div>

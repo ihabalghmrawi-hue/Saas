@@ -1,14 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
 import { POSClient } from './pos-client'
+import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export const dynamic = 'force-dynamic'
 
-const COMPANY_ID = process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
-
 export default async function POSPage() {
-  const supabase = createClient()
+  const COMPANY_ID = getCompanyId()
+  const supabase   = createClient()
 
-  const [{ data: products }, { data: categories }, { data: customers }, { data: warehouses }] = await Promise.all([
+  const [
+    { data: products },
+    { data: categories },
+    { data: customers },
+    { data: warehouses },
+    { data: company },
+  ] = await Promise.all([
     supabase
       .from('products')
       .select('*, product_categories(name, name_ar, color), inventory(quantity, warehouse_id)')
@@ -33,6 +39,11 @@ export default async function POSPage() {
       .select('*')
       .eq('company_id', COMPANY_ID)
       .eq('is_active', true),
+    supabase
+      .from('companies')
+      .select('name, name_ar, phone, address, tax_number, logo_url')
+      .eq('id', COMPANY_ID)
+      .single(),
   ])
 
   const defaultWarehouse = warehouses?.find(w => w.is_default) || warehouses?.[0]
@@ -45,7 +56,8 @@ export default async function POSPage() {
       warehouses={warehouses || []}
       defaultWarehouseId={defaultWarehouse?.id || null}
       companyId={COMPANY_ID}
-      currency={process.env.NEXT_PUBLIC_CURRENCY || 'SAR'}
+      currency={getCurrency()}
+      company={company || null}
     />
   )
 }

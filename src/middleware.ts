@@ -76,7 +76,7 @@ export async function middleware(request: NextRequest) {
       const reqHeaders = buildHeaders(request.headers, {
         'x-tenant-id':         'super_admin',
         'x-staff-id':          user.id,
-        'x-staff-name':        user.email ?? user.id,
+        'x-staff-name':        user.user_metadata?.full_name || user.email?.split('@')[0] || user.id,
         'x-staff-role':        'super_admin',
         'x-staff-permissions': '*',
         'x-business-type':     'retail',
@@ -125,24 +125,25 @@ export async function middleware(request: NextRequest) {
           : []
       }
 
-      const { data: settings } = await supabase
-        .from('company_settings')
-        .select('business_type')
-        .eq('company_id', tenantId)
-        .maybeSingle()
+      const [settingsRes, companyRes] = await Promise.all([
+        supabase.from('company_settings').select('business_type').eq('company_id', tenantId).maybeSingle(),
+        supabase.from('companies').select('name, currency').eq('id', tenantId).maybeSingle(),
+      ])
 
       const businessType =
-        settings?.business_type ||
+        settingsRes.data?.business_type ||
         request.cookies.get(BUSINESS_TYPE_COOKIE)?.value ||
         'retail'
 
       const reqHeaders = buildHeaders(request.headers, {
         'x-tenant-id':         tenantId,
         'x-staff-id':          user.id,
-        'x-staff-name':        user.email ?? user.id,
+        'x-staff-name':        user.user_metadata?.full_name || user.email?.split('@')[0] || user.id,
         'x-staff-role':        membership.role ?? 'owner',
         'x-staff-permissions': permissions.join(','),
         'x-business-type':     businessType,
+        'x-company-name':      companyRes.data?.name     ?? '',
+        'x-company-currency':  companyRes.data?.currency ?? 'SAR',
         'x-is-super-admin':    'false',
         'x-sub-status':        lifecycle.status,
         'x-sub-plan':          sub?.plan ?? 'free',
@@ -180,6 +181,17 @@ export async function middleware(request: NextRequest) {
   const businessType = request.cookies.get(BUSINESS_TYPE_COOKIE)?.value || 'retail'
   const companyId    = staff.companyId || process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
 
+  // Fetch company currency for PIN-session users
+  let pinCurrency = process.env.NEXT_PUBLIC_CURRENCY_DEFAULT || 'SAR'
+  try {
+    const { data: co } = await createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: { getAll: () => request.cookies.getAll(), setAll: () => {} } },
+    ).from('companies').select('currency').eq('id', companyId).maybeSingle()
+    if (co?.currency) pinCurrency = co.currency
+  } catch { /* fallback */ }
+
   const reqHeaders = buildHeaders(request.headers, {
     'x-tenant-id':         companyId,
     'x-staff-id':          staff.id,
@@ -187,6 +199,7 @@ export async function middleware(request: NextRequest) {
     'x-staff-role':        staff.role,
     'x-staff-permissions': staff.permissions.join(','),
     'x-business-type':     businessType,
+    'x-company-currency':  pinCurrency,
     'x-is-super-admin':    'false',
     'x-sub-status':        'active',
     'x-sub-plan':          'free',
@@ -200,7 +213,7 @@ export async function middleware(request: NextRequest) {
 
 function buildHeaders(base: Headers, map: Record<string, string>): Headers {
   const h = new Headers(base)
-  Object.entries(map).forEach(([k, v]) => h.set(k, v))
+  Object.entries(map).forEach(([k, v]) => h.set(k, encodeURIComponent(v)))
   return h
 }
 

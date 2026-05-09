@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, BookOpen, CheckCircle2, XCircle, Eye } from 'lucide-react'
+import { Plus, Trash2, BookOpen, CheckCircle2, XCircle, BarChart3, Scale, TrendingUp } from 'lucide-react'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { JournalEntry, Account } from '@/types/database'
@@ -21,12 +21,37 @@ interface EntryLine {
   description: string
 }
 
+type Tab = 'journal' | 'income' | 'balance'
+
 export function JournalClient({ entries, accounts, companyId, currency }: JournalClientProps) {
   const router = useRouter()
+  const [tab, setTab] = useState<Tab>('journal')
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null)
+
+  // ── Compute account balances from journal lines ───────────────────────────────
+  const accountBalances = useMemo(() => {
+    const map: Record<string, { debit: number; credit: number }> = {}
+    for (const entry of entries) {
+      const lines = (entry as any).journal_entry_lines || []
+      for (const line of lines) {
+        if (!line.account_id) continue
+        if (!map[line.account_id]) map[line.account_id] = { debit: 0, credit: 0 }
+        map[line.account_id].debit  += Number(line.debit  || 0)
+        map[line.account_id].credit += Number(line.credit || 0)
+      }
+    }
+    return map
+  }, [entries])
+
+  // Net balance per account (debit-normal accounts: debit-credit; credit-normal: credit-debit)
+  const netBalance = (account: Account) => {
+    const b = accountBalances[account.id] || { debit: 0, credit: 0 }
+    if (account.type === 'asset' || account.type === 'expense') return b.debit - b.credit
+    return b.credit - b.debit
+  }
 
   const today = new Date().toISOString().split('T')[0]
   const nextEntryNumber = `JE-${String(entries.length + 1).padStart(4, '0')}`
@@ -146,22 +171,207 @@ export function JournalClient({ entries, accounts, companyId, currency }: Journa
     expense: 'مصروفات',
   }
 
+  const revenueAccounts = accounts.filter(a => a.type === 'revenue')
+  const expenseAccounts = accounts.filter(a => a.type === 'expense')
+  const assetAccounts   = accounts.filter(a => a.type === 'asset')
+  const liabAccounts    = accounts.filter(a => a.type === 'liability')
+  const equityAccounts  = accounts.filter(a => a.type === 'equity')
+
+  const totalRevenue  = revenueAccounts.reduce((s, a) => s + netBalance(a), 0)
+  const totalExpenses = expenseAccounts.reduce((s, a) => s + netBalance(a), 0)
+  const netIncome     = totalRevenue - totalExpenses
+  const totalAssets   = assetAccounts.reduce((s, a) => s + netBalance(a), 0)
+  const totalLiab     = liabAccounts.reduce((s, a) => s + netBalance(a), 0)
+  const totalEquity   = equityAccounts.reduce((s, a) => s + netBalance(a), 0) + netIncome
+
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold text-foreground">قيود المحاسبة</h2>
-          <p className="text-sm text-muted-foreground">القيود اليومية - القيد المزدوج</p>
+          <h2 className="text-xl font-bold text-foreground">القيود والقوائم المحاسبية</h2>
+          <p className="text-sm text-muted-foreground">القيد المزدوج — يتم التحديث تلقائياً مع كل عملية</p>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          قيد جديد
-        </button>
+        {tab === 'journal' && (
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            قيد جديد
+          </button>
+        )}
       </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-muted/50 p-1 rounded-xl w-fit">
+        {([
+          { key: 'journal', label: 'دفتر اليومية',    icon: BookOpen    },
+          { key: 'income',  label: 'قائمة الدخل',     icon: TrendingUp  },
+          { key: 'balance', label: 'الميزانية العمومية', icon: Scale    },
+        ] as const).map(({ key, label, icon: Icon }) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={cn('flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+              tab === key ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground')}>
+            <Icon className="w-4 h-4" />{label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Income Statement ─────────────────────────────────────────────────── */}
+      {tab === 'income' && (
+        <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+          <div className="p-5 border-b bg-gradient-to-l from-emerald-50 to-transparent dark:from-emerald-900/10">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="w-5 h-5 text-emerald-600" />
+              <div>
+                <h3 className="font-bold text-foreground">قائمة الدخل</h3>
+                <p className="text-xs text-muted-foreground">الإيرادات والمصروفات</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-5 space-y-4">
+            {/* Revenues */}
+            <div>
+              <h4 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+                الإيرادات
+              </h4>
+              <div className="space-y-1.5">
+                {revenueAccounts.length === 0
+                  ? <p className="text-xs text-muted-foreground pr-4">لا توجد حسابات إيرادات</p>
+                  : revenueAccounts.map(a => (
+                    <div key={a.id} className="flex items-center justify-between pr-4 text-sm">
+                      <span className="text-muted-foreground">{a.name_ar || a.name}</span>
+                      <span className="font-medium">{formatCurrency(netBalance(a), currency)}</span>
+                    </div>
+                  ))}
+              </div>
+              <div className="flex items-center justify-between pr-4 mt-2 pt-2 border-t font-semibold text-sm">
+                <span>إجمالي الإيرادات</span>
+                <span className="text-emerald-600">{formatCurrency(totalRevenue, currency)}</span>
+              </div>
+            </div>
+
+            {/* Expenses */}
+            <div>
+              <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-red-500 inline-block"></span>
+                المصروفات
+              </h4>
+              <div className="space-y-1.5">
+                {expenseAccounts.length === 0
+                  ? <p className="text-xs text-muted-foreground pr-4">لا توجد حسابات مصروفات</p>
+                  : expenseAccounts.map(a => (
+                    <div key={a.id} className="flex items-center justify-between pr-4 text-sm">
+                      <span className="text-muted-foreground">{a.name_ar || a.name}</span>
+                      <span className="font-medium">{formatCurrency(netBalance(a), currency)}</span>
+                    </div>
+                  ))}
+              </div>
+              <div className="flex items-center justify-between pr-4 mt-2 pt-2 border-t font-semibold text-sm">
+                <span>إجمالي المصروفات</span>
+                <span className="text-red-600">{formatCurrency(totalExpenses, currency)}</span>
+              </div>
+            </div>
+
+            {/* Net Income */}
+            <div className={cn('rounded-xl p-4 flex items-center justify-between',
+              netIncome >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20')}>
+              <span className="font-bold text-foreground">صافي الدخل</span>
+              <span className={cn('text-xl font-bold', netIncome >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                {formatCurrency(netIncome, currency)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Balance Sheet ─────────────────────────────────────────────────────── */}
+      {tab === 'balance' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Assets */}
+          <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+            <div className="p-4 border-b bg-blue-50 dark:bg-blue-900/10">
+              <h3 className="font-bold text-blue-700 dark:text-blue-400">الأصول</h3>
+            </div>
+            <div className="p-4 space-y-1.5">
+              {assetAccounts.length === 0
+                ? <p className="text-xs text-muted-foreground">لا توجد حسابات أصول</p>
+                : assetAccounts.map(a => (
+                  <div key={a.id} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{a.name_ar || a.name}</span>
+                    <span className="font-medium">{formatCurrency(netBalance(a), currency)}</span>
+                  </div>
+                ))}
+              <div className="flex items-center justify-between mt-2 pt-2 border-t font-bold text-sm">
+                <span>إجمالي الأصول</span>
+                <span className="text-blue-600">{formatCurrency(totalAssets, currency)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Liabilities + Equity */}
+          <div className="space-y-4">
+            <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+              <div className="p-4 border-b bg-orange-50 dark:bg-orange-900/10">
+                <h3 className="font-bold text-orange-700 dark:text-orange-400">الالتزامات</h3>
+              </div>
+              <div className="p-4 space-y-1.5">
+                {liabAccounts.length === 0
+                  ? <p className="text-xs text-muted-foreground">لا توجد التزامات</p>
+                  : liabAccounts.map(a => (
+                    <div key={a.id} className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">{a.name_ar || a.name}</span>
+                      <span className="font-medium">{formatCurrency(netBalance(a), currency)}</span>
+                    </div>
+                  ))}
+                <div className="flex items-center justify-between mt-2 pt-2 border-t font-bold text-sm">
+                  <span>إجمالي الالتزامات</span>
+                  <span className="text-orange-600">{formatCurrency(totalLiab, currency)}</span>
+                </div>
+              </div>
+            </div>
+            <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
+              <div className="p-4 border-b bg-purple-50 dark:bg-purple-900/10">
+                <h3 className="font-bold text-purple-700 dark:text-purple-400">حقوق الملكية</h3>
+              </div>
+              <div className="p-4 space-y-1.5">
+                {equityAccounts.map(a => (
+                  <div key={a.id} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{a.name_ar || a.name}</span>
+                    <span className="font-medium">{formatCurrency(netBalance(a), currency)}</span>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">صافي الدخل المحتجز</span>
+                  <span className={cn('font-medium', netIncome >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                    {formatCurrency(netIncome, currency)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between mt-2 pt-2 border-t font-bold text-sm">
+                  <span>إجمالي حقوق الملكية</span>
+                  <span className="text-purple-600">{formatCurrency(totalEquity, currency)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Balance check */}
+            <div className={cn('rounded-xl p-3 flex items-center justify-between text-sm',
+              Math.abs(totalAssets - (totalLiab + totalEquity)) < 1
+                ? 'bg-emerald-50 dark:bg-emerald-900/20'
+                : 'bg-red-50 dark:bg-red-900/20')}>
+              <span className="font-bold">الميزانية</span>
+              <span className={cn('font-bold', Math.abs(totalAssets - (totalLiab + totalEquity)) < 1 ? 'text-emerald-600' : 'text-red-600')}>
+                {Math.abs(totalAssets - (totalLiab + totalEquity)) < 1 ? 'متوازنة ✓' : `فرق: ${formatCurrency(Math.abs(totalAssets - (totalLiab + totalEquity)), currency)}`}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Journal Entries ───────────────────────────────────────────────────── */}
+      {tab === 'journal' && <>
 
       {/* New Entry Form */}
       {showForm && (
@@ -436,6 +646,9 @@ export function JournalClient({ entries, accounts, companyId, currency }: Journa
           </div>
         )}
       </div>
+
+      </> /* end tab === 'journal' */ }
+
     </div>
   )
 }
