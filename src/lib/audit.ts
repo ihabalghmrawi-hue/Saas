@@ -3,24 +3,28 @@ import { headers }      from 'next/headers'
 
 export type AuditAction =
   // Auth
-  | 'auth.login' | 'auth.logout' | 'auth.login_failed'
+  | 'auth.login' | 'auth.logout' | 'auth.login_failed' | 'auth.pin_failed'
   // Sales
   | 'sale.created' | 'sale.cancelled' | 'sale.returned'
-  | 'payment.added'
+  | 'payment.added' | 'payment.deleted'
   // Customers & Suppliers
   | 'customer.created' | 'customer.updated' | 'customer.deleted'
   | 'supplier.created' | 'supplier.updated' | 'supplier.deleted'
   // Products & Inventory
   | 'product.created' | 'product.updated' | 'product.deleted'
   // Purchases & Expenses
-  | 'purchase.created'
-  | 'expense.created' | 'expense.deleted'
+  | 'purchase.created' | 'purchase.updated' | 'purchase.deleted'
+  | 'expense.created' | 'expense.updated' | 'expense.deleted'
+  // Accounting
+  | 'journal.created' | 'journal.posted' | 'journal.voided' | 'journal.reversed'
+  | 'journal.delete_attempt'
+  | 'coa.created' | 'period.opened' | 'period.closed'
   // Operations
   | 'shift.opened' | 'shift.closed'
   | 'return.created'
   // Staff & Permissions
   | 'staff.created' | 'staff.updated' | 'staff.deleted'
-  | 'permission.changed'
+  | 'permission.changed' | 'role.created' | 'role.updated' | 'role.deleted'
   // Subscription
   | 'subscription.changed' | 'subscription.expired' | 'subscription.renewed'
   // Rental
@@ -29,12 +33,12 @@ export type AuditAction =
   | 'entity.deleted' | 'entity.restored' | 'entity.hard_deleted'
   | 'factory_reset'
   // Backup
-  | 'backup.created' | 'backup.restored'
+  | 'backup.created' | 'backup.restored' | 'backup.downloaded'
   // Settings
   | 'settings.updated' | 'branding.updated'
   // Wallet & Inventory
   | 'wallet.created' | 'wallet.deposit' | 'wallet.withdrawal'
-  | 'inventory.adjusted'
+  | 'inventory.adjusted' | 'inventory.writeoff'
 
 export type AuditSeverity = 'info' | 'warning' | 'critical'
 
@@ -50,15 +54,24 @@ export interface AuditParams {
 }
 
 const SEVERITY_MAP: Partial<Record<AuditAction, AuditSeverity>> = {
-  'auth.login_failed':    'warning',
-  'entity.hard_deleted':  'critical',
-  'factory_reset':        'critical',
-  'subscription.expired': 'warning',
-  'permission.changed':   'warning',
-  'entity.deleted':       'warning',
-  'entity.restored':      'info',
-  'backup.created':       'info',
-  'backup.restored':      'warning',
+  'auth.login_failed':       'warning',
+  'auth.pin_failed':         'warning',
+  'entity.hard_deleted':     'critical',
+  'factory_reset':           'critical',
+  'subscription.expired':    'warning',
+  'permission.changed':      'warning',
+  'role.deleted':            'warning',
+  'entity.deleted':          'warning',
+  'entity.restored':         'info',
+  'backup.created':          'info',
+  'backup.restored':         'warning',
+  'journal.reversed':        'warning',
+  'journal.voided':          'warning',
+  'journal.delete_attempt':  'critical',
+  'period.closed':           'warning',
+  'inventory.writeoff':      'warning',
+  'staff.deleted':           'warning',
+  'payment.deleted':         'warning',
 }
 
 export async function logAudit(params: AuditParams): Promise<void> {

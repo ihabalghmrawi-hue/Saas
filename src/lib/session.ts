@@ -1,13 +1,20 @@
 // Session signing using HMAC-SHA256 (available in Node.js + Edge runtime)
 
-const SESSION_COOKIE = 'erp_staff_session'
-const DEFAULT_SECRET  = 'erp-default-secret-change-in-production'
-const SESSION_SECRET  = process.env.SESSION_SECRET || DEFAULT_SECRET
+export const SESSION_COOKIE = 'erp_staff_session'
 
-if (process.env.NODE_ENV === 'production' && SESSION_SECRET === DEFAULT_SECRET) {
-  // This is a startup check — logs are visible in Vercel/server logs
-  console.error('[SECURITY] SESSION_SECRET is using the default insecure value in production. Set SESSION_SECRET in your environment variables.')
+const _secret = process.env.SESSION_SECRET
+
+// Hard fail at startup if secret is missing or too short in production
+if (process.env.NODE_ENV === 'production') {
+  if (!_secret || _secret.length < 32) {
+    throw new Error(
+      '[SECURITY] SESSION_SECRET must be set to at least 32 characters in production. ' +
+      'Generate one with: openssl rand -hex 32'
+    )
+  }
 }
+
+const ACTIVE_SECRET = _secret ?? 'dev-only-insecure-secret-not-for-prod!!'
 
 export interface StaffSession {
   id: string
@@ -30,7 +37,7 @@ async function getKey(secret: string): Promise<CryptoKey> {
 
 export async function signSession(payload: StaffSession): Promise<string> {
   const data = btoa(encodeURIComponent(JSON.stringify(payload)))
-  const key = await getKey(SESSION_SECRET)
+  const key = await getKey(ACTIVE_SECRET)
   const sigBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data))
   const sigHex = Array.from(new Uint8Array(sigBuffer))
     .map(b => b.toString(16).padStart(2, '0'))
@@ -45,7 +52,7 @@ export async function verifySession(token: string): Promise<StaffSession | null>
     const data = token.slice(0, dotIdx)
     const sigHex = token.slice(dotIdx + 1)
 
-    const key = await getKey(SESSION_SECRET)
+    const key = await getKey(ACTIVE_SECRET)
     const sigBytes = new Uint8Array(
       sigHex.match(/.{1,2}/g)!.map(b => parseInt(b, 16))
     )
@@ -53,6 +60,10 @@ export async function verifySession(token: string): Promise<StaffSession | null>
     if (!valid) return null
 
     const payload = JSON.parse(decodeURIComponent(atob(data))) as StaffSession
+
+    // Reject sessions older than 12 hours
+    if (Date.now() - payload.loginAt > 12 * 60 * 60 * 1000) return null
+
     return payload
   } catch {
     return null
@@ -60,8 +71,6 @@ export async function verifySession(token: string): Promise<StaffSession | null>
 }
 
 export async function hashPin(pin: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin + SESSION_SECRET))
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin + ACTIVE_SECRET))
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
-
-export { SESSION_COOKIE }
