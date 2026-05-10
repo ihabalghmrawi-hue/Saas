@@ -8,47 +8,31 @@
 -- We use auth.uid() for Supabase-auth users and check memberships.
 -- For service-role requests (admin panel), RLS is bypassed automatically.
 
--- ── Enable RLS on all tenant tables ──────────────────────────────────────────
+-- ── Enable RLS on all tenant tables (safe — skips missing tables) ────────────
 
-ALTER TABLE companies              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE company_settings       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE company_branding       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE subscriptions          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE memberships            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE staff_users            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE staff_roles            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE role_permissions       ENABLE ROW LEVEL SECURITY;
-ALTER TABLE customers              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE suppliers              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products               ENABLE ROW LEVEL SECURITY;
-ALTER TABLE inventory              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE inventory_movements    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sales                  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sale_items             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE purchases              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE purchase_items         ENABLE ROW LEVEL SECURITY;
-ALTER TABLE expenses               ENABLE ROW LEVEL SECURITY;
-ALTER TABLE expense_categories     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE product_categories     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE units                  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE warehouses             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE accounts               ENABLE ROW LEVEL SECURITY;
-ALTER TABLE journal_entries        ENABLE ROW LEVEL SECURITY;
-ALTER TABLE journal_entry_lines    ENABLE ROW LEVEL SECURITY;
-ALTER TABLE fiscal_years           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE periods                ENABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_logs             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE backups                ENABLE ROW LEVEL SECURITY;
-ALTER TABLE notifications          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE shifts                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE wallet_transactions    ENABLE ROW LEVEL SECURITY;
-
--- Only enable these if they exist
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'rental_dresses')   THEN ALTER TABLE rental_dresses   ENABLE ROW LEVEL SECURITY; END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'rental_orders')    THEN ALTER TABLE rental_orders    ENABLE ROW LEVEL SECURITY; END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'rental_returns')   THEN ALTER TABLE rental_returns   ENABLE ROW LEVEL SECURITY; END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'rental_pricing')   THEN ALTER TABLE rental_pricing   ENABLE ROW LEVEL SECURITY; END IF;
+DO $$ DECLARE t TEXT; BEGIN
+  FOR t IN SELECT unnest(ARRAY[
+    'companies','company_settings','company_branding','subscriptions',
+    'memberships','staff_users','staff_roles','role_permissions',
+    'customers','suppliers','products','inventory','inventory_movements',
+    'sales','sale_items','purchases','purchase_items','expenses',
+    'expense_categories','product_categories','units','warehouses',
+    'accounts','journal_entries','journal_entry_lines',
+    'fiscal_years','periods','audit_logs','backups','notifications',
+    'shifts','wallet_transactions',
+    'rental_dresses','rental_orders','rental_returns','rental_pricing'
+  ])
+  LOOP
+    IF EXISTS (
+      SELECT 1 FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = t
+    ) THEN
+      EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
+      RAISE NOTICE 'RLS enabled on %', t;
+    ELSE
+      RAISE NOTICE 'Skipped (table not found): %', t;
+    END IF;
+  END LOOP;
 END $$;
 
 -- ── Helper function: get company_id for the current user ──────────────────────
@@ -117,12 +101,18 @@ CREATE POLICY "company_settings: tenant isolation"
   USING (company_id = auth.user_company_id())
   WITH CHECK (company_id = auth.user_company_id());
 
--- ── COMPANY_BRANDING ─────────────────────────────────────────────────────────
+-- ── COMPANY_BRANDING (optional table) ────────────────────────────────────────
 
-CREATE POLICY "company_branding: tenant isolation"
-  ON company_branding FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='company_branding') THEN
+    EXECUTE $pol$
+      CREATE POLICY "company_branding: tenant isolation"
+        ON company_branding FOR ALL
+        USING (company_id = auth.user_company_id())
+        WITH CHECK (company_id = auth.user_company_id())
+    $pol$;
+  END IF;
+END $$;
 
 -- ── SUBSCRIPTIONS ─────────────────────────────────────────────────────────────
 
@@ -279,15 +269,16 @@ CREATE POLICY "journal_entry_lines: tenant isolation"
     )
   );
 
-CREATE POLICY "fiscal_years: tenant isolation"
-  ON fiscal_years FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
-
-CREATE POLICY "periods: tenant isolation"
-  ON periods FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='fiscal_years') THEN
+    EXECUTE $pol$ CREATE POLICY "fiscal_years: tenant isolation" ON fiscal_years FOR ALL
+      USING (company_id = auth.user_company_id()) WITH CHECK (company_id = auth.user_company_id()) $pol$;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='periods') THEN
+    EXECUTE $pol$ CREATE POLICY "periods: tenant isolation" ON periods FOR ALL
+      USING (company_id = auth.user_company_id()) WITH CHECK (company_id = auth.user_company_id()) $pol$;
+  END IF;
+END $$;
 
 -- ── AUDIT / SYSTEM TABLES ─────────────────────────────────────────────────────
 
@@ -299,20 +290,20 @@ CREATE POLICY "audit_logs: read own tenant"
 -- No INSERT/UPDATE/DELETE for authenticated users — only service role can write
 -- This prevents tampering with audit history
 
-CREATE POLICY "backups: tenant isolation"
-  ON backups FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
-
-CREATE POLICY "notifications: tenant isolation"
-  ON notifications FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
-
-CREATE POLICY "shifts: tenant isolation"
-  ON shifts FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='backups') THEN
+    EXECUTE $pol$ CREATE POLICY "backups: tenant isolation" ON backups FOR ALL
+      USING (company_id = auth.user_company_id()) WITH CHECK (company_id = auth.user_company_id()) $pol$;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='notifications') THEN
+    EXECUTE $pol$ CREATE POLICY "notifications: tenant isolation" ON notifications FOR ALL
+      USING (company_id = auth.user_company_id()) WITH CHECK (company_id = auth.user_company_id()) $pol$;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='shifts') THEN
+    EXECUTE $pol$ CREATE POLICY "shifts: tenant isolation" ON shifts FOR ALL
+      USING (company_id = auth.user_company_id()) WITH CHECK (company_id = auth.user_company_id()) $pol$;
+  END IF;
+END $$;
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'wallet_transactions') THEN
