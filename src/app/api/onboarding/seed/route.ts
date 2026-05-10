@@ -166,6 +166,11 @@ const TEMPLATES: Record<BusinessType, { categories: Category[]; products: Produc
     ],
   },
 
+  construction: {
+    categories: [],
+    products:   [],
+  },
+
   other: {
     categories: [
       { name: 'Category 1', name_ar: 'فئة 1', color: '#3B82F6' },
