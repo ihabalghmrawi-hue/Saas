@@ -1,62 +1,41 @@
 'use client'
 
-import { Suspense, useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react'
 
 function LoginForm() {
-  const router = useRouter()
+  const router       = useRouter()
+  const searchParams = useSearchParams()
 
   const [email,        setEmail]        = useState('')
   const [password,     setPassword]     = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading,      setLoading]      = useState(false)
-  const [checking,     setChecking]     = useState(true)
   const [error,        setError]        = useState('')
-  const didRedirect = useRef(false)
-
-  // Check if already logged in — max 3s wait, then show form regardless
-  useEffect(() => {
-    const timer = setTimeout(() => setChecking(false), 3000)
-    createClient()
-      .auth.getUser()
-      .then(({ data: { user } }) => {
-        clearTimeout(timer)
-        if (user && !didRedirect.current) {
-          didRedirect.current = true
-          router.replace('/dashboard')
-        } else {
-          setChecking(false)
-        }
-      })
-      .catch(() => { clearTimeout(timer); setChecking(false) })
-    return () => clearTimeout(timer)
-  }, [router])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+
     const { error: err } = await createClient().auth.signInWithPassword({ email, password })
     if (err) {
       setError('البريد الإلكتروني أو كلمة المرور غير صحيحة')
       setLoading(false)
       return
     }
-    // Small pause so the session cookie is written before navigation
-    await new Promise(r => setTimeout(r, 300))
-    router.push('/dashboard')
-    router.refresh()
-  }
 
-  if (checking) {
-    return (
-      <div className="bg-card rounded-2xl border shadow-xl p-8 flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    )
+    // Mark this browser session as explicitly authenticated.
+    // This session-only cookie disappears when the browser closes so the user
+    // must log in again next time they open the app.
+    await fetch('/api/auth/session', { method: 'POST' })
+
+    const redirectTo = searchParams.get('redirectTo') || '/dashboard'
+    router.replace(redirectTo)
+    router.refresh()
   }
 
   return (

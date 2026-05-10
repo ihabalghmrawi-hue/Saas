@@ -9,14 +9,15 @@ import { generateSlug } from '@/lib/utils'
 import { BUSINESS_TYPE_COOKIE } from '@/lib/features'
 
 const BUSINESS_TYPE_OPTIONS = [
-  { value: 'retail',       label: 'بقالة / سوبرماركت',    icon: '🛒', description: 'مبيعات بالتجزئة وإدارة المخزون' },
-  { value: 'wholesale',    label: 'تجارة الجملة',           icon: '📦', description: 'بيع بالجملة وأسعار كميات' },
-  { value: 'pharmacy',     label: 'صيدلية',                 icon: '💊', description: 'إدارة الأدوية وتواريخ الانتهاء' },
-  { value: 'clothing',     label: 'ملابس وأزياء',           icon: '👗', description: 'ملابس مع متغيرات المقاسات والألوان' },
-  { value: 'dress_rental', label: 'تأجير الفساتين',         icon: '👘', description: 'إدارة الحجوزات والتأجير' },
-  { value: 'stationery',   label: 'قرطاسية ومكتبة',        icon: '📚', description: 'مواد مكتبية وتعليمية' },
-  { value: 'tools',        label: 'أدوات وعدد',             icon: '🔧', description: 'معدات وأدوات صناعية' },
-  { value: 'other',        label: 'أخرى',                   icon: '🏪', description: 'نشاط تجاري عام' },
+  { value: 'retail',        label: 'بقالة / سوبرماركت',    icon: '🛒', description: 'مبيعات بالتجزئة وإدارة المخزون' },
+  { value: 'wholesale',     label: 'تجارة الجملة',           icon: '📦', description: 'بيع بالجملة وأسعار كميات' },
+  { value: 'pharmacy',      label: 'صيدلية',                 icon: '💊', description: 'إدارة الأدوية وتواريخ الانتهاء' },
+  { value: 'clothing',      label: 'ملابس وأزياء',           icon: '👗', description: 'ملابس مع متغيرات المقاسات والألوان' },
+  { value: 'dress_rental',  label: 'تأجير الفساتين',         icon: '👘', description: 'إدارة الحجوزات والتأجير' },
+  { value: 'stationery',    label: 'قرطاسية ومكتبة',        icon: '📚', description: 'مواد مكتبية وتعليمية' },
+  { value: 'tools',         label: 'أدوات وعدد',             icon: '🔧', description: 'معدات وأدوات صناعية' },
+  { value: 'construction',  label: 'بناء وتشطيبات',          icon: '🏗️', description: 'مشاريع البناء، العمال، المصروفات' },
+  { value: 'other',         label: 'أخرى',                   icon: '🏪', description: 'نشاط تجاري عام' },
 ]
 
 export default function SignupPage() {
@@ -118,7 +119,17 @@ export default function SignupPage() {
       is_active: true,
     })
 
-    // 4. Save business type cookie then redirect to onboarding
+    // 4. Save business type to DB (persistent, locked after this)
+    await supabase.from('company_settings').upsert({
+      company_id: company.id,
+      business_type: formData.businessType,
+      updated_at: new Date().toISOString(),
+    })
+
+    // 5. Mark this browser session as authenticated (required by middleware)
+    await fetch('/api/auth/session', { method: 'POST' })
+
+    // 6. Set business type cookie and go to dashboard
     document.cookie = `${BUSINESS_TYPE_COOKIE}=${formData.businessType}; path=/; max-age=${60 * 60 * 24 * 365}`
     router.push('/dashboard')
     router.refresh()

@@ -17,6 +17,9 @@ const PUBLIC_PATHS = [
   '/api/onboarding',
 ]
 
+// Session-only cookie set on explicit login — disappears when browser closes.
+const APP_SESSION_COOKIE = 'app-session-active'
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -70,6 +73,16 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
+    // Require an explicit login this browser session — the session cookie has no
+    // maxAge so it disappears when the browser closes. If it's missing the user
+    // must log in again even though the Supabase JWT is still technically valid.
+    const hasSessionMarker = !!request.cookies.get(APP_SESSION_COOKIE)?.value
+    if (!hasSessionMarker && isDashboard) {
+      const url = new URL('/auth/login', request.url)
+      url.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(url)
+    }
+
     const superAdmin = isSuperAdmin(user.email)
 
     if (superAdmin) {
