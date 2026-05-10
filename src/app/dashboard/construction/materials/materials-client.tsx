@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Search, Package, Trash2 } from 'lucide-react'
+import { Plus, Search, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 interface Material {
@@ -11,9 +11,25 @@ interface Material {
 }
 interface Project { id: string; name: string }
 
-const UNITS = ['وحدة', 'متر', 'متر مربع', 'متر مكعب', 'كيلو', 'طن', 'لتر', 'صندوق', 'رول', 'قطعة']
+// DB CHECK: ('unit','kg','ton','m','m2','m3','liter','box','bag','roll','other')
+const UNITS: Record<string, string> = {
+  unit:  'وحدة',
+  kg:    'كيلو',
+  ton:   'طن',
+  m:     'متر',
+  m2:    'متر مربع',
+  m3:    'متر مكعب',
+  liter: 'لتر',
+  box:   'صندوق',
+  bag:   'كيس',
+  roll:  'رول',
+  other: 'أخرى',
+}
 
-const emptyForm = { project_id: '', name: '', supplier: '', unit: 'وحدة', quantity: '', unit_price: '', purchase_date: new Date().toISOString().slice(0, 10), notes: '' }
+const emptyForm = {
+  project_id: '', name: '', supplier: '', unit: 'unit', quantity: '',
+  unit_price: '', purchase_date: new Date().toISOString().slice(0, 10), notes: '',
+}
 
 export function MaterialsClient({ materials: init, projects, currency }: { materials: Material[]; projects: Project[]; currency: string }) {
   const [materials, setMaterials] = useState(init)
@@ -38,7 +54,14 @@ export function MaterialsClient({ materials: init, projects, currency }: { mater
   const handleSubmit = async (ev: React.FormEvent) => {
     ev.preventDefault(); setLoading(true); setError('')
     try {
-      const payload = { ...form, quantity: Number(form.quantity) || 0, unit_price: Number(form.unit_price) || 0, project_id: form.project_id || null, supplier: form.supplier || null, notes: form.notes || null }
+      const payload = {
+        ...form,
+        quantity:   Number(form.quantity)   || 0,
+        unit_price: Number(form.unit_price) || 0,
+        project_id: form.project_id || null,
+        supplier:   form.supplier   || null,
+        notes:      form.notes      || null,
+      }
       const res  = await fetch('/api/construction/materials', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
@@ -103,7 +126,7 @@ export function MaterialsClient({ materials: init, projects, currency }: { mater
                 <td className="px-4 py-3 font-medium">{m.name}</td>
                 <td className="px-4 py-3 text-muted-foreground">{m.con_projects?.name || '—'}</td>
                 <td className="px-4 py-3 text-muted-foreground">{m.supplier || '—'}</td>
-                <td className="px-4 py-3">{Number(m.quantity)} {m.unit}</td>
+                <td className="px-4 py-3">{Number(m.quantity)} {UNITS[m.unit] || m.unit}</td>
                 <td className="px-4 py-3">{fmt(Number(m.unit_price))}</td>
                 <td className="px-4 py-3 font-medium text-left">{fmt(Number(m.total_price || Number(m.quantity) * Number(m.unit_price)))}</td>
                 <td className="px-4 py-3">
@@ -148,14 +171,14 @@ export function MaterialsClient({ materials: init, projects, currency }: { mater
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">الكمية *</label>
-                  <input required type="number" min="0" step="0.01" value={form.quantity} onChange={e => setForm((f: any) => ({ ...f, quantity: e.target.value }))}
+                  <input required type="number" min="0" step="0.001" value={form.quantity} onChange={e => setForm((f: any) => ({ ...f, quantity: e.target.value }))}
                     className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30" />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">الوحدة</label>
                   <select value={form.unit} onChange={e => setForm((f: any) => ({ ...f, unit: e.target.value }))}
                     className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                    {Object.entries(UNITS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </div>
                 <div>

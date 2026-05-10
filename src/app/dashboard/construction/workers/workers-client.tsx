@@ -9,18 +9,29 @@ interface Worker {
   status: string; rating: number | null; notes: string | null;
 }
 
+// DB CHECK: ('available','busy','inactive')
+const STATUS_AR: Record<string, string> = { available: 'متاح', busy: 'مشغول', inactive: 'غير نشط' }
 const STATUS_COLORS: Record<string, string> = {
-  active:    'bg-green-100 text-green-700',
+  available: 'bg-green-100 text-green-700',
+  busy:      'bg-yellow-100 text-yellow-700',
   inactive:  'bg-gray-100 text-gray-600',
-  on_leave:  'bg-yellow-100 text-yellow-700',
 }
-const STATUS_AR: Record<string, string> = { active: 'نشط', inactive: 'غير نشط', on_leave: 'إجازة' }
 
-const JOB_TYPES = [
-  'بناء', 'سباكة', 'كهرباء', 'نجارة', 'دهان', 'تشطيب', 'عزل', 'بلاط', 'جبس', 'حفر', 'أخرى',
-]
+// DB CHECK: ('plumber','electrician','painter','carpenter','tiler','mason','welder','general','supervisor','other')
+const JOB_TYPES: Record<string, string> = {
+  plumber:      'سباك',
+  electrician:  'كهربائي',
+  painter:      'دهان',
+  carpenter:    'نجار',
+  tiler:        'بلاط',
+  mason:        'بناء',
+  welder:       'لحام',
+  general:      'عامل عام',
+  supervisor:   'مشرف',
+  other:        'أخرى',
+}
 
-const emptyForm = { name: '', phone: '', job_type: 'بناء', daily_rate: '', status: 'active', rating: '', notes: '' }
+const emptyForm = { name: '', phone: '', job_type: 'general', daily_rate: '', status: 'available', rating: '', notes: '' }
 
 export function WorkersClient({ workers: init, currency }: { workers: Worker[]; currency: string }) {
   const [workers, setWorkers] = useState(init)
@@ -37,7 +48,7 @@ export function WorkersClient({ workers: init, currency }: { workers: Worker[]; 
 
   const filtered = workers.filter(w => {
     const q = search.toLowerCase()
-    return (!q || w.name.toLowerCase().includes(q) || w.job_type.toLowerCase().includes(q) || (w.phone || '').includes(q))
+    return (!q || w.name.toLowerCase().includes(q) || (JOB_TYPES[w.job_type] || w.job_type).toLowerCase().includes(q) || (w.phone || '').includes(q))
       && (!filterStatus || w.status === filterStatus)
   })
 
@@ -103,7 +114,7 @@ export function WorkersClient({ workers: init, currency }: { workers: Worker[]; 
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">{w.name}</h3>
-                  <p className="text-xs text-muted-foreground">{w.job_type}</p>
+                  <p className="text-xs text-muted-foreground">{JOB_TYPES[w.job_type] || w.job_type}</p>
                 </div>
               </div>
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${STATUS_COLORS[w.status] || 'bg-gray-100 text-gray-600'}`}>
@@ -174,7 +185,7 @@ export function WorkersClient({ workers: init, currency }: { workers: Worker[]; 
                   <label className="text-xs text-muted-foreground mb-1 block">المهنة</label>
                   <select value={form.job_type} onChange={e => setForm((f: any) => ({ ...f, job_type: e.target.value }))}
                     className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    {JOB_TYPES.map(j => <option key={j} value={j}>{j}</option>)}
+                    {Object.entries(JOB_TYPES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </div>
                 <div>
@@ -206,9 +217,7 @@ export function WorkersClient({ workers: init, currency }: { workers: Worker[]; 
                   {loading ? 'جاري الحفظ...' : editing ? 'حفظ التعديلات' : 'إضافة العامل'}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)}
-                  className="px-5 py-2 border rounded-lg text-sm hover:bg-accent">
-                  إلغاء
-                </button>
+                  className="px-5 py-2 border rounded-lg text-sm hover:bg-accent">إلغاء</button>
               </div>
             </form>
           </div>

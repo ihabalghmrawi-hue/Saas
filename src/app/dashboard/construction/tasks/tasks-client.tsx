@@ -1,38 +1,47 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Search, CheckSquare, Edit, Trash2, Calendar, Flag } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { Plus, Search, Trash2, Edit, Calendar, Flag } from 'lucide-react'
 
 interface Task {
   id: string; title: string; description: string | null; status: string; priority: string;
-  project_id: string | null; assigned_worker_id: string | null; due_date: string | null;
+  project_id: string | null; worker_id: string | null; due_date: string | null;
   completed_at: string | null; notes: string | null;
   con_projects?: { name: string } | null;
+  con_workers?:  { name: string } | null;
 }
 interface Project { id: string; name: string }
 interface Worker  { id: string; name: string }
 
-const STATUSES  = ['pending', 'in_progress', 'done', 'cancelled']
-const STATUS_AR: Record<string, string> = { pending: 'قيد الانتظار', in_progress: 'جارٍ', done: 'مكتمل', cancelled: 'ملغي' }
+// DB CHECK: ('todo','in_progress','review','done','blocked')
+const STATUSES = ['todo', 'in_progress', 'review', 'done', 'blocked']
+const STATUS_AR: Record<string, string> = {
+  todo:        'قيد الانتظار',
+  in_progress: 'جارٍ',
+  review:      'مراجعة',
+  done:        'مكتمل',
+  blocked:     'موقوف',
+}
 const STATUS_COLORS: Record<string, string> = {
-  pending:     'border-gray-200 bg-gray-50',
+  todo:        'border-gray-200 bg-gray-50',
   in_progress: 'border-blue-200 bg-blue-50',
+  review:      'border-purple-200 bg-purple-50',
   done:        'border-green-200 bg-green-50',
-  cancelled:   'border-red-200 bg-red-50',
+  blocked:     'border-red-200 bg-red-50',
 }
 const STATUS_HEADER: Record<string, string> = {
-  pending:     'bg-gray-100 text-gray-600',
+  todo:        'bg-gray-100 text-gray-600',
   in_progress: 'bg-blue-100 text-blue-700',
+  review:      'bg-purple-100 text-purple-700',
   done:        'bg-green-100 text-green-700',
-  cancelled:   'bg-red-100 text-red-500',
+  blocked:     'bg-red-100 text-red-500',
 }
 const PRIORITY_COLORS: Record<string, string> = {
   low: 'text-gray-400', medium: 'text-blue-500', high: 'text-orange-500', urgent: 'text-red-500',
 }
 const PRIORITY_AR: Record<string, string> = { low: 'منخفض', medium: 'متوسط', high: 'عالي', urgent: 'عاجل' }
 
-const emptyForm = { title: '', description: '', status: 'pending', priority: 'medium', project_id: '', assigned_worker_id: '', due_date: '', notes: '' }
+const emptyForm = { title: '', description: '', status: 'todo', priority: 'medium', project_id: '', worker_id: '', due_date: '', notes: '' }
 
 export function TasksClient({ tasks: init, projects, workers }: { tasks: Task[]; projects: Project[]; workers: Worker[] }) {
   const [tasks, setTasks] = useState(init)
@@ -55,14 +64,19 @@ export function TasksClient({ tasks: init, projects, workers }: { tasks: Task[];
 
   const openNew  = () => { setForm(emptyForm); setEditing(null); setError(''); setShowForm(true) }
   const openEdit = (t: Task) => {
-    setForm({ title: t.title, description: t.description || '', status: t.status, priority: t.priority, project_id: t.project_id || '', assigned_worker_id: t.assigned_worker_id || '', due_date: t.due_date || '', notes: t.notes || '' })
+    setForm({ title: t.title, description: t.description || '', status: t.status, priority: t.priority, project_id: t.project_id || '', worker_id: t.worker_id || '', due_date: t.due_date || '', notes: t.notes || '' })
     setEditing(t); setError(''); setShowForm(true)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setLoading(true); setError('')
     try {
-      const payload = { ...form, project_id: form.project_id || null, assigned_worker_id: form.assigned_worker_id || null, due_date: form.due_date || null }
+      const payload = {
+        ...form,
+        project_id: form.project_id || null,
+        worker_id:  form.worker_id  || null,
+        due_date:   form.due_date   || null,
+      }
       const url    = editing ? `/api/construction/tasks/${editing.id}` : '/api/construction/tasks'
       const method = editing ? 'PATCH' : 'POST'
       const res  = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -112,7 +126,7 @@ export function TasksClient({ tasks: init, projects, workers }: { tasks: Task[];
       </div>
 
       {/* Kanban Board */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {byStatus.map(col => (
           <div key={col.status} className="space-y-3">
             <div className={`flex items-center justify-between px-3 py-2 rounded-lg ${STATUS_HEADER[col.status]}`}>
@@ -126,28 +140,22 @@ export function TasksClient({ tasks: init, projects, workers }: { tasks: Task[];
                     <p className="text-sm font-medium leading-tight">{t.title}</p>
                     <Flag className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${PRIORITY_COLORS[t.priority]}`} />
                   </div>
-                  {t.con_projects && (
-                    <p className="text-xs text-muted-foreground">{t.con_projects.name}</p>
-                  )}
+                  {t.con_projects && <p className="text-xs text-muted-foreground">{t.con_projects.name}</p>}
+                  {t.con_workers  && <p className="text-xs text-muted-foreground">{t.con_workers.name}</p>}
                   {t.due_date && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Calendar className="w-3 h-3" />
-                      <span>{t.due_date}</span>
+                      <Calendar className="w-3 h-3" /><span>{t.due_date}</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between pt-1 border-t border-black/5">
                     <div className="flex gap-1">
                       {col.status !== 'done' && (
                         <button onClick={() => quickStatus(t, 'done')} title="إتمام"
-                          className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors">
-                          ✓
-                        </button>
+                          className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full hover:bg-green-200 transition-colors">✓</button>
                       )}
-                      {col.status === 'pending' && (
+                      {col.status === 'todo' && (
                         <button onClick={() => quickStatus(t, 'in_progress')} title="بدء"
-                          className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">
-                          ▶
-                        </button>
+                          className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors">▶</button>
                       )}
                     </div>
                     <div className="flex gap-1">
@@ -196,7 +204,7 @@ export function TasksClient({ tasks: init, projects, workers }: { tasks: Task[];
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground mb-1 block">العامل المكلف</label>
-                  <select value={form.assigned_worker_id} onChange={e => setForm((f: any) => ({ ...f, assigned_worker_id: e.target.value }))}
+                  <select value={form.worker_id} onChange={e => setForm((f: any) => ({ ...f, worker_id: e.target.value }))}
                     className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
                     <option value="">— بدون تعيين —</option>
                     {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}

@@ -38,9 +38,9 @@ export function ProjectDetailClient({ project, tasks: initTasks, expenses: initE
   const [showMatForm, setShowMatForm]      = useState(false)
   const [showPayForm, setShowPayForm]      = useState(false)
 
-  const [taskForm, setTaskForm] = useState({ title: '', priority: 'medium', status: 'pending', assigned_worker_id: '', due_date: '' })
-  const [expForm,  setExpForm]  = useState({ category: 'عمالة', amount: '', description: '', vendor: '', expense_date: new Date().toISOString().slice(0, 10) })
-  const [matForm,  setMatForm]  = useState({ name: '', supplier: '', unit: 'وحدة', quantity: '', unit_price: '', purchase_date: new Date().toISOString().slice(0, 10) })
+  const [taskForm, setTaskForm] = useState({ title: '', priority: 'medium', status: 'todo', worker_id: '', due_date: '' })
+  const [expForm,  setExpForm]  = useState({ category: 'labor', amount: '', description: '', vendor: '', expense_date: new Date().toISOString().slice(0, 10) })
+  const [matForm,  setMatForm]  = useState({ name: '', supplier: '', unit: 'unit', quantity: '', unit_price: '', purchase_date: new Date().toISOString().slice(0, 10) })
   const [payForm,  setPayForm]  = useState({ type: 'incoming', amount: '', description: '', payment_method: 'cash', payment_date: new Date().toISOString().slice(0, 10), reference: '' })
 
   const [loading, setLoading] = useState(false)
@@ -57,11 +57,11 @@ export function ProjectDetailClient({ project, tasks: initTasks, expenses: initE
   const saveTask = async (e: React.FormEvent) => {
     e.preventDefault(); setLoading(true); setError('')
     try {
-      const res  = await fetch('/api/construction/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...taskForm, project_id: project.id, assigned_worker_id: taskForm.assigned_worker_id || null, due_date: taskForm.due_date || null }) })
+      const res  = await fetch('/api/construction/tasks', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...taskForm, project_id: project.id, worker_id: taskForm.worker_id || null, due_date: taskForm.due_date || null }) })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setTasks(prev => [data, ...prev]); setShowTaskForm(false)
-      setTaskForm({ title: '', priority: 'medium', status: 'pending', assigned_worker_id: '', due_date: '' })
+      setTaskForm({ title: '', priority: 'medium', status: 'todo', worker_id: '', due_date: '' })
     } catch (err: any) { setError(err.message) } finally { setLoading(false) }
   }
 
@@ -356,7 +356,7 @@ export function ProjectDetailClient({ project, tasks: initTasks, expenses: initE
                   <option value="low">منخفض</option><option value="medium">متوسط</option>
                   <option value="high">عالي</option><option value="urgent">عاجل</option>
                 </select>
-                <select value={taskForm.assigned_worker_id} onChange={e => setTaskForm(f => ({ ...f, assigned_worker_id: e.target.value }))}
+                <select value={taskForm.worker_id} onChange={e => setTaskForm(f => ({ ...f, worker_id: e.target.value }))}
                   className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
                   <option value="">— عامل —</option>
                   {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
@@ -386,7 +386,12 @@ export function ProjectDetailClient({ project, tasks: initTasks, expenses: initE
               <div className="grid grid-cols-2 gap-2">
                 <select value={expForm.category} onChange={e => setExpForm(f => ({ ...f, category: e.target.value }))}
                   className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
-                  {['عمالة','مواد بناء','معدات','نقل','كهرباء وماء','إدارية','أخرى'].map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value="labor">عمالة</option>
+              <option value="materials">مواد بناء</option>
+              <option value="equipment">معدات</option>
+              <option value="transport">نقل</option>
+              <option value="subcontract">مقاول من الباطن</option>
+              <option value="other">أخرى</option>
                 </select>
                 <input required type="number" min="0" step="0.01" placeholder="المبلغ *" value={expForm.amount} onChange={e => setExpForm(f => ({ ...f, amount: e.target.value }))}
                   className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30" />
@@ -419,7 +424,17 @@ export function ProjectDetailClient({ project, tasks: initTasks, expenses: initE
                   className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30" />
                 <select value={matForm.unit} onChange={e => setMatForm(f => ({ ...f, unit: e.target.value }))}
                   className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
-                  {['وحدة','متر','متر مربع','متر مكعب','كيلو','طن','لتر','صندوق','رول','قطعة'].map(u => <option key={u} value={u}>{u}</option>)}
+                  <option value="unit">وحدة</option>
+                  <option value="m">متر</option>
+                  <option value="m2">متر مربع</option>
+                  <option value="m3">متر مكعب</option>
+                  <option value="kg">كيلو</option>
+                  <option value="ton">طن</option>
+                  <option value="liter">لتر</option>
+                  <option value="box">صندوق</option>
+                  <option value="bag">كيس</option>
+                  <option value="roll">رول</option>
+                  <option value="other">أخرى</option>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-2">

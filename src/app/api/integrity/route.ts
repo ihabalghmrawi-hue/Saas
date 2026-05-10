@@ -54,7 +54,11 @@ export async function GET(req: NextRequest) {
       .eq('wallet_id', wallet.id)
       .eq('status', 'completed')
 
-    const expectedBalance = (txns || []).reduce((sum, t) => {
+    // Only check wallets that have transaction records — wallets with no
+    // transactions may have a manual opening balance which is intentional.
+    if (!txns || txns.length === 0) continue
+
+    const expectedBalance = txns.reduce((sum, t) => {
       return sum + (t.type === 'income' ? Number(t.amount) : -Number(t.amount))
     }, 0)
 

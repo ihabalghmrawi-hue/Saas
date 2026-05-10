@@ -1,19 +1,30 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Search, DollarSign, Trash2 } from 'lucide-react'
+import { Plus, Search, Trash2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 interface Expense {
   id: string; project_id: string | null; category: string; amount: number; description: string;
-  vendor: string | null; expense_date: string; receipt_url: string | null; notes: string | null;
+  vendor: string | null; expense_date: string; notes: string | null;
   con_projects?: { name: string } | null;
 }
 interface Project { id: string; name: string }
 
-const CATEGORIES = ['عمالة', 'مواد بناء', 'معدات', 'نقل', 'كهرباء وماء', 'إدارية', 'أخرى']
+// DB CHECK: ('materials','labor','equipment','transport','subcontract','other')
+const CATEGORIES: Record<string, string> = {
+  materials:   'مواد بناء',
+  labor:       'عمالة',
+  equipment:   'معدات',
+  transport:   'نقل',
+  subcontract: 'مقاول من الباطن',
+  other:       'أخرى',
+}
 
-const emptyForm = { project_id: '', category: 'عمالة', amount: '', description: '', vendor: '', expense_date: new Date().toISOString().slice(0, 10), notes: '' }
+const emptyForm = {
+  project_id: '', category: 'labor', amount: '', description: '',
+  vendor: '', expense_date: new Date().toISOString().slice(0, 10), notes: '',
+}
 
 export function ExpensesClient({ expenses: init, projects, currency }: { expenses: Expense[]; projects: Project[]; currency: string }) {
   const [expenses, setExpenses] = useState(init)
@@ -30,7 +41,7 @@ export function ExpensesClient({ expenses: init, projects, currency }: { expense
 
   const filtered = expenses.filter(e => {
     const q = search.toLowerCase()
-    return (!q || e.description.toLowerCase().includes(q) || e.category.toLowerCase().includes(q) || (e.vendor || '').toLowerCase().includes(q))
+    return (!q || e.description.toLowerCase().includes(q) || (CATEGORIES[e.category] || e.category).toLowerCase().includes(q) || (e.vendor || '').toLowerCase().includes(q))
       && (!filterProject  || e.project_id === filterProject)
       && (!filterCategory || e.category   === filterCategory)
   })
@@ -86,7 +97,7 @@ export function ExpensesClient({ expenses: init, projects, currency }: { expense
         <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
           className="border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
           <option value="">كل الفئات</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+          {Object.entries(CATEGORIES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>
       </div>
 
@@ -109,7 +120,7 @@ export function ExpensesClient({ expenses: init, projects, currency }: { expense
                 <td className="px-4 py-3 text-muted-foreground">{e.expense_date}</td>
                 <td className="px-4 py-3">{e.description}</td>
                 <td className="px-4 py-3">
-                  <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">{e.category}</span>
+                  <span className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">{CATEGORIES[e.category] || e.category}</span>
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{e.con_projects?.name || '—'}</td>
                 <td className="px-4 py-3 text-muted-foreground">{e.vendor || '—'}</td>
@@ -145,7 +156,7 @@ export function ExpensesClient({ expenses: init, projects, currency }: { expense
                   <label className="text-xs text-muted-foreground mb-1 block">الفئة</label>
                   <select value={form.category} onChange={e => setForm((f: any) => ({ ...f, category: e.target.value }))}
                     className="w-full border rounded-lg px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary/30">
-                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {Object.entries(CATEGORIES).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                   </select>
                 </div>
                 <div>
