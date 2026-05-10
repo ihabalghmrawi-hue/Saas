@@ -354,23 +354,86 @@ DO $$ BEGIN
   END IF;
 END $$;
 
--- ── Performance indexes (run if not already exist) ───────────────────────────
+-- ── Performance indexes (safe — checks column existence before creating) ──────
 
-CREATE INDEX IF NOT EXISTS idx_memberships_user_company    ON memberships(user_id, company_id) WHERE is_active = true;
-CREATE INDEX IF NOT EXISTS idx_memberships_company         ON memberships(company_id)          WHERE is_active = true;
-CREATE INDEX IF NOT EXISTS idx_subscriptions_company       ON subscriptions(company_id);
-CREATE INDEX IF NOT EXISTS idx_customers_company           ON customers(company_id)             WHERE is_active = true;
-CREATE INDEX IF NOT EXISTS idx_products_company            ON products(company_id)              WHERE is_active = true;
-CREATE INDEX IF NOT EXISTS idx_sales_company_date          ON sales(company_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_purchases_company_date      ON purchases(company_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_journal_entries_company     ON journal_entries(company_id, date DESC);
-CREATE INDEX IF NOT EXISTS idx_journal_entry_lines_entry   ON journal_entry_lines(journal_entry_id);
-CREATE INDEX IF NOT EXISTS idx_journal_entry_lines_account ON journal_entry_lines(account_id);
-CREATE INDEX IF NOT EXISTS idx_accounts_company_code       ON accounts(company_id, code);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_company_action   ON audit_logs(company_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_inventory_company_product   ON inventory(company_id, product_id);
-CREATE INDEX IF NOT EXISTS idx_expenses_company_date       ON expenses(company_id, date DESC);
-CREATE INDEX IF NOT EXISTS idx_staff_users_company_pin     ON staff_users(company_id, pin_hash) WHERE is_active = true;
+DO $$ BEGIN
+  -- memberships
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='memberships' AND column_name='is_active') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_memberships_user_company ON memberships(user_id, company_id) WHERE is_active = true';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_memberships_company ON memberships(company_id) WHERE is_active = true';
+  ELSE
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_memberships_user_company ON memberships(user_id, company_id)';
+  END IF;
+
+  -- subscriptions
+  EXECUTE 'CREATE INDEX IF NOT EXISTS idx_subscriptions_company ON subscriptions(company_id)';
+
+  -- customers
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='customers' AND column_name='is_active') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_customers_company ON customers(company_id) WHERE is_active = true';
+  END IF;
+
+  -- products
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='products' AND column_name='is_active') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_products_company ON products(company_id) WHERE is_active = true';
+  END IF;
+
+  -- sales
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='sales' AND column_name='created_at') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_sales_company_date ON sales(company_id, created_at DESC)';
+  END IF;
+
+  -- purchases
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='purchases' AND column_name='created_at') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_purchases_company_date ON purchases(company_id, created_at DESC)';
+  END IF;
+
+  -- journal_entries — try 'date' column first, fall back to 'created_at'
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='journal_entries' AND column_name='date') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_journal_entries_company ON journal_entries(company_id, date DESC)';
+  ELSIF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='journal_entries' AND column_name='created_at') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_journal_entries_company ON journal_entries(company_id, created_at DESC)';
+  END IF;
+
+  -- journal_entry_lines
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='journal_entry_lines') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_journal_entry_lines_entry ON journal_entry_lines(journal_entry_id)';
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_journal_entry_lines_account ON journal_entry_lines(account_id)';
+  END IF;
+
+  -- accounts
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='accounts' AND column_name='code') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_accounts_company_code ON accounts(company_id, code)';
+  END IF;
+
+  -- audit_logs
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='audit_logs') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_audit_logs_company_action ON audit_logs(company_id, created_at DESC)';
+  END IF;
+
+  -- inventory
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='inventory' AND column_name='product_id') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_inventory_company_product ON inventory(company_id, product_id)';
+  END IF;
+
+  -- expenses — try 'date' column first, fall back to 'created_at'
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='date') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_expenses_company_date ON expenses(company_id, date DESC)';
+  ELSIF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='expenses' AND column_name='created_at') THEN
+    EXECUTE 'CREATE INDEX IF NOT EXISTS idx_expenses_company_date ON expenses(company_id, created_at DESC)';
+  END IF;
+
+  -- staff_users
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='staff_users' AND column_name='pin_hash') THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='staff_users' AND column_name='is_active') THEN
+      EXECUTE 'CREATE INDEX IF NOT EXISTS idx_staff_users_company_pin ON staff_users(company_id, pin_hash) WHERE is_active = true';
+    ELSE
+      EXECUTE 'CREATE INDEX IF NOT EXISTS idx_staff_users_company_pin ON staff_users(company_id, pin_hash)';
+    END IF;
+  END IF;
+
+  RAISE NOTICE 'Indexes created successfully';
+END $$;
 
 -- ── Prevent negative inventory via check constraint ──────────────────────────
 
@@ -397,13 +460,11 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- Prevent editing a posted entry (description, lines, amounts)
+  -- Prevent editing amounts or company on a posted entry
   IF OLD.status = 'posted' AND NEW.status = 'posted' THEN
-    -- Only allow approved_by and reversal fields to change after posting
     IF OLD.total_debit  != NEW.total_debit  OR
        OLD.total_credit != NEW.total_credit OR
-       OLD.company_id   != NEW.company_id   OR
-       OLD.date         != NEW.date
+       OLD.company_id   != NEW.company_id
     THEN
       RAISE EXCEPTION 'Cannot modify a posted journal entry. Create a reversal instead.';
     END IF;
