@@ -37,11 +37,12 @@ END $$;
 
 -- ── Helper function: get company_id for the current user ──────────────────────
 
-CREATE OR REPLACE FUNCTION auth.user_company_id()
+CREATE OR REPLACE FUNCTION public.current_company_id()
 RETURNS uuid
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
+SET search_path = public
 AS $$
   SELECT company_id::uuid
   FROM   memberships
@@ -77,29 +78,29 @@ END $$;
 
 CREATE POLICY "companies: member can read own"
   ON companies FOR SELECT
-  USING (id = auth.user_company_id());
+  USING (id = current_company_id());
 
 -- Company update: owner only
 CREATE POLICY "companies: owner can update"
   ON companies FOR UPDATE
-  USING (id = auth.user_company_id());
+  USING (id = current_company_id());
 
 -- ── MEMBERSHIPS ───────────────────────────────────────────────────────────────
 
 CREATE POLICY "memberships: user sees own"
   ON memberships FOR SELECT
-  USING (user_id = auth.uid() OR company_id = auth.user_company_id());
+  USING (user_id = auth.uid() OR company_id = current_company_id());
 
 CREATE POLICY "memberships: user can insert own"
   ON memberships FOR INSERT
-  WITH CHECK (company_id = auth.user_company_id());
+  WITH CHECK (company_id = current_company_id());
 
 -- ── COMPANY_SETTINGS ─────────────────────────────────────────────────────────
 
 CREATE POLICY "company_settings: tenant isolation"
   ON company_settings FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 -- ── COMPANY_BRANDING (optional table) ────────────────────────────────────────
 
@@ -108,8 +109,8 @@ DO $$ BEGIN
     EXECUTE $pol$
       CREATE POLICY "company_branding: tenant isolation"
         ON company_branding FOR ALL
-        USING (company_id = auth.user_company_id())
-        WITH CHECK (company_id = auth.user_company_id())
+        USING (company_id = current_company_id())
+        WITH CHECK (company_id = current_company_id())
     $pol$;
   END IF;
 END $$;
@@ -118,7 +119,7 @@ END $$;
 
 CREATE POLICY "subscriptions: read own"
   ON subscriptions FOR SELECT
-  USING (company_id = auth.user_company_id());
+  USING (company_id = current_company_id());
 
 -- Only service role can INSERT/UPDATE/DELETE subscriptions
 -- (admin panel uses service role key, bypasses RLS)
@@ -127,15 +128,15 @@ CREATE POLICY "subscriptions: read own"
 
 CREATE POLICY "staff_users: tenant isolation"
   ON staff_users FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 -- ── STAFF_ROLES ───────────────────────────────────────────────────────────────
 
 CREATE POLICY "staff_roles: tenant isolation"
   ON staff_roles FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 -- ── ROLE_PERMISSIONS ─────────────────────────────────────────────────────────
 
@@ -143,7 +144,7 @@ CREATE POLICY "role_permissions: read via role"
   ON role_permissions FOR SELECT
   USING (
     role_id IN (
-      SELECT id FROM staff_roles WHERE company_id = auth.user_company_id()
+      SELECT id FROM staff_roles WHERE company_id = current_company_id()
     )
   );
 
@@ -151,12 +152,12 @@ CREATE POLICY "role_permissions: write via role"
   ON role_permissions FOR ALL
   USING (
     role_id IN (
-      SELECT id FROM staff_roles WHERE company_id = auth.user_company_id()
+      SELECT id FROM staff_roles WHERE company_id = current_company_id()
     )
   )
   WITH CHECK (
     role_id IN (
-      SELECT id FROM staff_roles WHERE company_id = auth.user_company_id()
+      SELECT id FROM staff_roles WHERE company_id = current_company_id()
     )
   );
 
@@ -167,116 +168,116 @@ CREATE POLICY "role_permissions: write via role"
 
 CREATE POLICY "customers: tenant isolation"
   ON customers FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "suppliers: tenant isolation"
   ON suppliers FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "products: tenant isolation"
   ON products FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "inventory: tenant isolation"
   ON inventory FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "inventory_movements: tenant isolation"
   ON inventory_movements FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "sales: tenant isolation"
   ON sales FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "sale_items: tenant isolation"
   ON sale_items FOR ALL
   USING (
-    sale_id IN (SELECT id FROM sales WHERE company_id = auth.user_company_id())
+    sale_id IN (SELECT id FROM sales WHERE company_id = current_company_id())
   )
   WITH CHECK (
-    sale_id IN (SELECT id FROM sales WHERE company_id = auth.user_company_id())
+    sale_id IN (SELECT id FROM sales WHERE company_id = current_company_id())
   );
 
 CREATE POLICY "purchases: tenant isolation"
   ON purchases FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "purchase_items: tenant isolation"
   ON purchase_items FOR ALL
   USING (
-    purchase_id IN (SELECT id FROM purchases WHERE company_id = auth.user_company_id())
+    purchase_id IN (SELECT id FROM purchases WHERE company_id = current_company_id())
   )
   WITH CHECK (
-    purchase_id IN (SELECT id FROM purchases WHERE company_id = auth.user_company_id())
+    purchase_id IN (SELECT id FROM purchases WHERE company_id = current_company_id())
   );
 
 CREATE POLICY "expenses: tenant isolation"
   ON expenses FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "expense_categories: tenant isolation"
   ON expense_categories FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "product_categories: tenant isolation"
   ON product_categories FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "units: tenant isolation"
   ON units FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "warehouses: tenant isolation"
   ON warehouses FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 -- ── ACCOUNTING TABLES ─────────────────────────────────────────────────────────
 
 CREATE POLICY "accounts: tenant isolation"
   ON accounts FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 CREATE POLICY "journal_entries: tenant isolation"
   ON journal_entries FOR ALL
-  USING (company_id = auth.user_company_id())
-  WITH CHECK (company_id = auth.user_company_id());
+  USING (company_id = current_company_id())
+  WITH CHECK (company_id = current_company_id());
 
 -- journal_entry_lines: access via parent entry
 CREATE POLICY "journal_entry_lines: tenant isolation"
   ON journal_entry_lines FOR ALL
   USING (
     journal_entry_id IN (
-      SELECT id FROM journal_entries WHERE company_id = auth.user_company_id()
+      SELECT id FROM journal_entries WHERE company_id = current_company_id()
     )
   )
   WITH CHECK (
     journal_entry_id IN (
-      SELECT id FROM journal_entries WHERE company_id = auth.user_company_id()
+      SELECT id FROM journal_entries WHERE company_id = current_company_id()
     )
   );
 
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='fiscal_years') THEN
     EXECUTE $pol$ CREATE POLICY "fiscal_years: tenant isolation" ON fiscal_years FOR ALL
-      USING (company_id = auth.user_company_id()) WITH CHECK (company_id = auth.user_company_id()) $pol$;
+      USING (company_id = current_company_id()) WITH CHECK (company_id = current_company_id()) $pol$;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='periods') THEN
     EXECUTE $pol$ CREATE POLICY "periods: tenant isolation" ON periods FOR ALL
-      USING (company_id = auth.user_company_id()) WITH CHECK (company_id = auth.user_company_id()) $pol$;
+      USING (company_id = current_company_id()) WITH CHECK (company_id = current_company_id()) $pol$;
   END IF;
 END $$;
 
@@ -285,7 +286,7 @@ END $$;
 -- Audit logs: read-only for users, write only from server (service role)
 CREATE POLICY "audit_logs: read own tenant"
   ON audit_logs FOR SELECT
-  USING (company_id = auth.user_company_id());
+  USING (company_id = current_company_id());
 
 -- No INSERT/UPDATE/DELETE for authenticated users — only service role can write
 -- This prevents tampering with audit history
@@ -293,15 +294,15 @@ CREATE POLICY "audit_logs: read own tenant"
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='backups') THEN
     EXECUTE $pol$ CREATE POLICY "backups: tenant isolation" ON backups FOR ALL
-      USING (company_id = auth.user_company_id()) WITH CHECK (company_id = auth.user_company_id()) $pol$;
+      USING (company_id = current_company_id()) WITH CHECK (company_id = current_company_id()) $pol$;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='notifications') THEN
     EXECUTE $pol$ CREATE POLICY "notifications: tenant isolation" ON notifications FOR ALL
-      USING (company_id = auth.user_company_id()) WITH CHECK (company_id = auth.user_company_id()) $pol$;
+      USING (company_id = current_company_id()) WITH CHECK (company_id = current_company_id()) $pol$;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='shifts') THEN
     EXECUTE $pol$ CREATE POLICY "shifts: tenant isolation" ON shifts FOR ALL
-      USING (company_id = auth.user_company_id()) WITH CHECK (company_id = auth.user_company_id()) $pol$;
+      USING (company_id = current_company_id()) WITH CHECK (company_id = current_company_id()) $pol$;
   END IF;
 END $$;
 
@@ -310,8 +311,8 @@ DO $$ BEGIN
     EXECUTE $pol$
       CREATE POLICY "wallet_transactions: tenant isolation"
         ON wallet_transactions FOR ALL
-        USING (company_id = auth.user_company_id())
-        WITH CHECK (company_id = auth.user_company_id())
+        USING (company_id = current_company_id())
+        WITH CHECK (company_id = current_company_id())
     $pol$;
   END IF;
 END $$;
@@ -323,32 +324,32 @@ DO $$ BEGIN
     EXECUTE $pol$
       CREATE POLICY "rental_dresses: tenant isolation"
         ON rental_dresses FOR ALL
-        USING (company_id = auth.user_company_id())
-        WITH CHECK (company_id = auth.user_company_id())
+        USING (company_id = current_company_id())
+        WITH CHECK (company_id = current_company_id())
     $pol$;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'rental_orders') THEN
     EXECUTE $pol$
       CREATE POLICY "rental_orders: tenant isolation"
         ON rental_orders FOR ALL
-        USING (company_id = auth.user_company_id())
-        WITH CHECK (company_id = auth.user_company_id())
+        USING (company_id = current_company_id())
+        WITH CHECK (company_id = current_company_id())
     $pol$;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'rental_returns') THEN
     EXECUTE $pol$
       CREATE POLICY "rental_returns: tenant isolation"
         ON rental_returns FOR ALL
-        USING (company_id = auth.user_company_id())
-        WITH CHECK (company_id = auth.user_company_id())
+        USING (company_id = current_company_id())
+        WITH CHECK (company_id = current_company_id())
     $pol$;
   END IF;
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'rental_pricing') THEN
     EXECUTE $pol$
       CREATE POLICY "rental_pricing: tenant isolation"
         ON rental_pricing FOR ALL
-        USING (company_id = auth.user_company_id())
-        WITH CHECK (company_id = auth.user_company_id())
+        USING (company_id = current_company_id())
+        WITH CHECK (company_id = current_company_id())
     $pol$;
   END IF;
 END $$;
