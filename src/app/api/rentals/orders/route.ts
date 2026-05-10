@@ -36,21 +36,21 @@ export async function POST(req: NextRequest) {
 
   // 3. Create order
   const { data, error } = await supabase.from('rental_orders').insert({
-    company_id: COMPANY_ID,
-    order_number: orderNum,
-    dress_id: body.dress_id,
-    customer_id: body.customer_id || null,
+    company_id:    COMPANY_ID,
+    order_number:  orderNum,
+    dress_id:      body.dress_id,
+    customer_id:   body.customer_id || null,
     customer_name: body.customer_name,
     customer_phone: body.customer_phone || null,
-    start_date: body.start_date,
-    end_date: body.end_date,
-    rental_price: body.rental_price,
-    total_price: body.total_price,
-    deposit: body.deposit,
-    deposit_paid: body.deposit_paid || 0,
-    amount_paid: body.amount_paid || 0,
-    notes: body.notes || null,
-    status: 'booked',
+    start_date:    body.start_date,
+    end_date:      body.end_date,
+    rental_price:  Number(body.rental_price),
+    total_price:   Number(body.total_price),
+    deposit:       Number(body.deposit),
+    deposit_paid:  Number(body.deposit_paid) || 0,
+    amount_paid:   Number(body.amount_paid)  || 0,
+    notes:         body.notes || null,
+    status:        'booked',
   }).select('*, dresses(name, code, color, size)').single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

@@ -21,15 +21,26 @@ export async function POST(req: NextRequest) {
     const body    = await req.json()
     const admin   = createAdminClient()
 
+    const companyId = body.company_id || req.headers.get('x-tenant-id') || ''
+
     const { data: expense, error } = await admin
       .from('expenses')
-      .insert(body)
+      .insert({
+        company_id:     companyId,
+        description:    body.description    || body.name || '',
+        amount:         Number(body.amount) || 0,
+        expense_date:   body.expense_date   || new Date().toISOString().slice(0, 10),
+        category_id:    body.category_id    || null,
+        payment_method: body.payment_method || 'cash',
+        wallet_id:      body.wallet_id      || null,
+        notes:          body.notes          || null,
+      })
       .select()
       .single()
 
     if (error) throw new Error(error.message)
 
-    const company_id = body.company_id || expense.company_id
+    const company_id = companyId || expense.company_id
     const amount     = Number(body.amount || expense.amount || 0)
     const desc       = body.description || body.name || 'مصروف'
 

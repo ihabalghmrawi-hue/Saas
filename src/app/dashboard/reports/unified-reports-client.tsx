@@ -376,7 +376,6 @@ function RentalPanel({ data, currency }: { data: RentalReportData; currency: str
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip formatter={(v: any) => fmt(Number(v))} />
                   <Line type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={2} dot={false} name="الإيرادات" />
-                  <Line type="monotone" dataKey="bookings" stroke="#10b981" strokeWidth={1.5} dot={false} name="الحجوزات" yAxisId="right" hide />
                 </LineChart>
               </ResponsiveContainer>
             ) : <EmptyChart />}

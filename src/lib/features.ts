@@ -6,6 +6,7 @@ export type BusinessType =
   | 'stationery'
   | 'tools'
   | 'dress_rental'
+  | 'construction'
   | 'other'
 
 export interface Features {
@@ -29,6 +30,8 @@ export interface Features {
   showInventory: boolean
   // Rental module
   hasRental: boolean
+  // Construction module
+  hasConstruction: boolean
   // Categories
   medicineCategories: boolean
   // Labels
@@ -42,7 +45,7 @@ const FEATURE_MAP: Record<BusinessType, Omit<Features, 'businessType'>> = {
     hasBulkPricing: false, hasMinQty: false, hasWholesalePrice: false,
     fastPOS: false, barcodeFirst: true,
     showReturns: true, showShifts: true, showPurchases: true, showPOS: true, showInventory: true,
-    hasRental: false, medicineCategories: true,
+    hasRental: false, hasConstruction: false, medicineCategories: true,
     label: 'صيدلية', icon: '💊',
   },
   retail: {
@@ -50,7 +53,7 @@ const FEATURE_MAP: Record<BusinessType, Omit<Features, 'businessType'>> = {
     hasBulkPricing: false, hasMinQty: false, hasWholesalePrice: false,
     fastPOS: true, barcodeFirst: true,
     showReturns: true, showShifts: true, showPurchases: true, showPOS: true, showInventory: true,
-    hasRental: false, medicineCategories: false,
+    hasRental: false, hasConstruction: false, medicineCategories: false,
     label: 'بقالة / سوبرماركت', icon: '🛒',
   },
   wholesale: {
@@ -58,7 +61,7 @@ const FEATURE_MAP: Record<BusinessType, Omit<Features, 'businessType'>> = {
     hasBulkPricing: true, hasMinQty: true, hasWholesalePrice: true,
     fastPOS: false, barcodeFirst: true,
     showReturns: true, showShifts: false, showPurchases: true, showPOS: true, showInventory: true,
-    hasRental: false, medicineCategories: false,
+    hasRental: false, hasConstruction: false, medicineCategories: false,
     label: 'بيع بالجملة', icon: '📦',
   },
   clothing: {
@@ -66,7 +69,7 @@ const FEATURE_MAP: Record<BusinessType, Omit<Features, 'businessType'>> = {
     hasBulkPricing: false, hasMinQty: false, hasWholesalePrice: false,
     fastPOS: false, barcodeFirst: false,
     showReturns: true, showShifts: true, showPurchases: true, showPOS: true, showInventory: true,
-    hasRental: false, medicineCategories: false,
+    hasRental: false, hasConstruction: false, medicineCategories: false,
     label: 'ملابس', icon: '👗',
   },
   stationery: {
@@ -74,7 +77,7 @@ const FEATURE_MAP: Record<BusinessType, Omit<Features, 'businessType'>> = {
     hasBulkPricing: false, hasMinQty: false, hasWholesalePrice: false,
     fastPOS: true, barcodeFirst: true,
     showReturns: false, showShifts: true, showPurchases: true, showPOS: true, showInventory: true,
-    hasRental: false, medicineCategories: false,
+    hasRental: false, hasConstruction: false, medicineCategories: false,
     label: 'قرطاسية', icon: '📝',
   },
   tools: {
@@ -82,7 +85,7 @@ const FEATURE_MAP: Record<BusinessType, Omit<Features, 'businessType'>> = {
     hasBulkPricing: false, hasMinQty: false, hasWholesalePrice: false,
     fastPOS: false, barcodeFirst: true,
     showReturns: true, showShifts: false, showPurchases: true, showPOS: true, showInventory: true,
-    hasRental: false, medicineCategories: false,
+    hasRental: false, hasConstruction: false, medicineCategories: false,
     label: 'أدوات منزلية', icon: '🔧',
   },
   dress_rental: {
@@ -90,21 +93,29 @@ const FEATURE_MAP: Record<BusinessType, Omit<Features, 'businessType'>> = {
     hasBulkPricing: false, hasMinQty: false, hasWholesalePrice: false,
     fastPOS: false, barcodeFirst: false,
     showReturns: false, showShifts: false, showPurchases: false, showPOS: false, showInventory: false,
-    hasRental: true, medicineCategories: false,
+    hasRental: true, hasConstruction: false, medicineCategories: false,
     label: 'تأجير فساتين', icon: '👰',
+  },
+  construction: {
+    hasExpiry: false, hasBatch: false, hasVariants: false,
+    hasBulkPricing: false, hasMinQty: false, hasWholesalePrice: false,
+    fastPOS: false, barcodeFirst: false,
+    showReturns: false, showShifts: false, showPurchases: false, showPOS: false, showInventory: false,
+    hasRental: false, hasConstruction: true, medicineCategories: false,
+    label: 'تشطيبات وبناء', icon: '🏗️',
   },
   other: {
     hasExpiry: false, hasBatch: false, hasVariants: false,
     hasBulkPricing: false, hasMinQty: false, hasWholesalePrice: true,
     fastPOS: false, barcodeFirst: false,
     showReturns: true, showShifts: true, showPurchases: true, showPOS: true, showInventory: true,
-    hasRental: false, medicineCategories: false,
+    hasRental: false, hasConstruction: false, medicineCategories: false,
     label: 'أخرى', icon: '🏪',
   },
 }
 
 export const BUSINESS_TYPES: BusinessType[] = [
-  'pharmacy', 'retail', 'wholesale', 'clothing', 'stationery', 'tools', 'dress_rental', 'other',
+  'pharmacy', 'retail', 'wholesale', 'clothing', 'stationery', 'tools', 'dress_rental', 'construction', 'other',
 ]
 
 export function getFeatures(businessType?: string | null): Features {

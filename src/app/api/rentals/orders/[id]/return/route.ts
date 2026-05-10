@@ -16,12 +16,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   // Create return record
   const { error: retErr } = await supabase.from('rental_returns').insert({
-    company_id: COMPANY_ID,
-    rental_id: params.id,
-    condition,
-    extra_fees: extra_fees || 0,
-    deposit_refund: deposit_refund || 0,
-    notes: notes || null,
+    company_id:     COMPANY_ID,
+    rental_id:      params.id,
+    condition:      String(condition || 'good'),
+    extra_fees:     Number(extra_fees)     || 0,
+    deposit_refund: Number(deposit_refund) || 0,
+    notes:          notes || null,
   })
   if (retErr) return NextResponse.json({ error: retErr.message }, { status: 500 })
 

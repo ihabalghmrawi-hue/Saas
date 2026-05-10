@@ -6,8 +6,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const COMPANY_ID = getCompanyId()
   const body = await req.json()
   const supabase = createClient()
+
+  const allowed: Record<string, unknown> = {}
+  if ('name' in body)         allowed.name         = String(body.name || '')
+  if ('code' in body)         allowed.code         = body.code || null
+  if ('category' in body)     allowed.category     = String(body.category)
+  if ('size' in body)         allowed.size         = body.size || null
+  if ('color' in body)        allowed.color        = body.color || null
+  if ('description' in body)  allowed.description  = body.description || null
+  if ('rental_price' in body) allowed.rental_price = Number(body.rental_price) || 0
+  if ('deposit' in body)      allowed.deposit      = Number(body.deposit) || 0
+  if ('status' in body)       allowed.status       = String(body.status)
+
   const { data, error } = await supabase.from('dresses')
-    .update({ ...body, updated_at: new Date().toISOString() })
+    .update({ ...allowed, updated_at: new Date().toISOString() })
     .eq('id', params.id).eq('company_id', COMPANY_ID).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)

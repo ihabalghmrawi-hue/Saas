@@ -135,7 +135,7 @@ export function FastBookingClient({ dresses, currency }: { dresses: Dress[]; cur
           customer_phone: customerPhone,
           start_date:     startDate,
           end_date:       endDate,
-          deposit_paid:   depositPaid,
+          deposit_paid:   depositPaid ? deposit : 0,
           amount_paid:    parseFloat(amountPaid) || 0,
           // pass engine-calculated totals
           rental_price:   breakdown?.base_per_day ?? selectedDress.rental_price,

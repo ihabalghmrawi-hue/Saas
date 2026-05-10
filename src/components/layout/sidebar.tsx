@@ -8,6 +8,7 @@ import {
   Warehouse, TrendingUp, RotateCcw, Clock, Shield, UserCog, LogOut,
   Layers, Shirt, Calendar, CalendarDays, Trash2 as Trash2Icon, AlertOctagon,
   ShieldCheck, Building2, Scale, FileText, PieChart, GitBranch, CalendarRange,
+  HardHat, Hammer, CheckSquare, PackageOpen, CreditCard,
 } from 'lucide-react'
 import { cn, getInitials } from '@/lib/utils'
 import type { Features } from '@/lib/features'
@@ -106,6 +107,19 @@ export function Sidebar({ company, user, staff, features, branding }: SidebarPro
       items: [
         { label: 'التقارير', href: '/dashboard/reports', icon: BarChart3, show: can(staff, 'reports.view') },
         { label: 'الأرباح والخسائر', href: '/dashboard/reports/profit-loss', icon: TrendingUp, show: can(staff, 'reports.view') },
+      ],
+    },
+    {
+      label: 'البناء والتشطيبات',
+      items: [
+        { label: 'لوحة البناء',  href: '/dashboard/construction',           icon: HardHat,    show: features.hasConstruction },
+        { label: 'المشاريع',     href: '/dashboard/construction/projects',   icon: Building2,  show: features.hasConstruction },
+        { label: 'العمال',       href: '/dashboard/construction/workers',    icon: Users,      show: features.hasConstruction },
+        { label: 'المهام',       href: '/dashboard/construction/tasks',      icon: CheckSquare,show: features.hasConstruction },
+        { label: 'المصروفات',    href: '/dashboard/construction/expenses',   icon: DollarSign, show: features.hasConstruction },
+        { label: 'المواد',       href: '/dashboard/construction/materials',  icon: PackageOpen,show: features.hasConstruction },
+        { label: 'المدفوعات',    href: '/dashboard/construction/payments',   icon: CreditCard, show: features.hasConstruction },
+        { label: 'تقارير البناء',href: '/dashboard/construction/reports',   icon: BarChart3,  show: features.hasConstruction },
       ],
     },
     {

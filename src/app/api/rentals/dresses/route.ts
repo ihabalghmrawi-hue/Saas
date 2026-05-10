@@ -17,7 +17,20 @@ export async function POST(req: NextRequest) {
   const COMPANY_ID = getCompanyId()
   const body = await req.json()
   const supabase = createClient()
-  const { data, error } = await supabase.from('dresses').insert({ ...body, company_id: COMPANY_ID }).select().single()
+
+  const { data, error } = await supabase.from('dresses').insert({
+    company_id:   COMPANY_ID,
+    name:         String(body.name || ''),
+    code:         body.code         || null,
+    category:     body.category     || 'other',
+    size:         body.size         || null,
+    color:        body.color        || null,
+    description:  body.description  || null,
+    rental_price: Number(body.rental_price) || 0,
+    deposit:      Number(body.deposit)      || 0,
+    status:       'available',
+  }).select().single()
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data)
 }

@@ -70,7 +70,7 @@ export function BookingsClient({ orders: init, dresses, currency }: { orders: Or
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setLoading(true); setError('')
     try {
-      const payload = { ...form, amount_paid: parseFloat(form.amount_paid) || 0, deposit_paid: !!form.deposit_paid }
+      const payload = { ...form, amount_paid: parseFloat(form.amount_paid) || 0, deposit_paid: Number(form.deposit_paid) || 0 }
       const url = editing ? `/api/rentals/orders/${editing.id}` : '/api/rentals/orders'
       const method = editing ? 'PATCH' : 'POST'
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
@@ -241,7 +241,7 @@ export function BookingsClient({ orders: init, dresses, currency }: { orders: Or
                   <input type="number" step="0.01" value={form.amount_paid} onChange={e => setForm((f: any) => ({ ...f, amount_paid: e.target.value }))} placeholder="0.00" className={inp} />
                 </div>
                 <div className="flex items-center gap-2 pt-5">
-                  <input type="checkbox" id="deposit_paid" checked={!!form.deposit_paid} onChange={e => setForm((f: any) => ({ ...f, deposit_paid: e.target.checked }))} className="w-4 h-4 accent-primary" />
+                  <input type="checkbox" id="deposit_paid" checked={!!form.deposit_paid} onChange={e => setForm((f: any) => ({ ...f, deposit_paid: e.target.checked ? (selectedDress?.deposit ?? 0) : 0 }))} className="w-4 h-4 accent-primary" />
                   <label htmlFor="deposit_paid" className="text-sm">التأمين مدفوع</label>
                   {selectedDress && <span className="text-xs text-muted-foreground">({formatCurrency(selectedDress.deposit, currency)})</span>}
                 </div>
