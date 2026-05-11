@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 /*
   # Finance SaaS - Complete Database Schema
 
@@ -32,7 +33,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 CREATE TABLE IF NOT EXISTS companies (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   name_ar VARCHAR(255),
   slug VARCHAR(100) UNIQUE NOT NULL,
@@ -52,7 +53,7 @@ CREATE TABLE IF NOT EXISTS companies (
 );
 
 CREATE TABLE IF NOT EXISTS memberships (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   role VARCHAR(50) DEFAULT 'owner',
@@ -64,7 +65,7 @@ CREATE TABLE IF NOT EXISTS memberships (
 );
 
 CREATE TABLE IF NOT EXISTS categories (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name VARCHAR(100) NOT NULL,
   name_ar VARCHAR(100),
@@ -78,7 +79,7 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 CREATE TABLE IF NOT EXISTS accounts (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   code VARCHAR(20) NOT NULL,
   name VARCHAR(100) NOT NULL,
@@ -97,7 +98,7 @@ CREATE TABLE IF NOT EXISTS accounts (
 );
 
 CREATE TABLE IF NOT EXISTS parties (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   name_ar VARCHAR(255),
@@ -115,7 +116,7 @@ CREATE TABLE IF NOT EXISTS parties (
 );
 
 CREATE TABLE IF NOT EXISTS transactions (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   type VARCHAR(20) NOT NULL CHECK (type IN ('income', 'expense', 'transfer')),
   amount DECIMAL(15,2) NOT NULL CHECK (amount > 0),
@@ -138,7 +139,7 @@ CREATE TABLE IF NOT EXISTS transactions (
 );
 
 CREATE TABLE IF NOT EXISTS journal_entries (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   entry_number VARCHAR(50) NOT NULL,
   date DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -156,7 +157,7 @@ CREATE TABLE IF NOT EXISTS journal_entries (
 );
 
 CREATE TABLE IF NOT EXISTS journal_entry_lines (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   journal_entry_id UUID NOT NULL REFERENCES journal_entries(id) ON DELETE CASCADE,
   account_id UUID NOT NULL REFERENCES accounts(id),
   debit DECIMAL(15,2) DEFAULT 0 CHECK (debit >= 0),
@@ -170,7 +171,7 @@ CREATE TABLE IF NOT EXISTS journal_entry_lines (
 );
 
 CREATE TABLE IF NOT EXISTS wallets (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name VARCHAR(100) NOT NULL,
   name_ar VARCHAR(100),
@@ -189,7 +190,7 @@ CREATE TABLE IF NOT EXISTS wallets (
 );
 
 CREATE TABLE IF NOT EXISTS wallet_transactions (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   wallet_id UUID NOT NULL REFERENCES wallets(id) ON DELETE CASCADE,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL,
@@ -203,7 +204,7 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
 );
 
 CREATE TABLE IF NOT EXISTS reports_cache (
-  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   report_type VARCHAR(50) NOT NULL,
   period_start DATE NOT NULL,
@@ -418,18 +419,25 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
+DROP TRIGGER IF EXISTS update_companies_updated_at ON companies;
 CREATE TRIGGER update_companies_updated_at BEFORE UPDATE ON companies
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_accounts_updated_at ON accounts;
 CREATE TRIGGER update_accounts_updated_at BEFORE UPDATE ON accounts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_transactions_updated_at ON transactions;
 CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_journal_entries_updated_at ON journal_entries;
 CREATE TRIGGER update_journal_entries_updated_at BEFORE UPDATE ON journal_entries
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_wallets_updated_at ON wallets;
 CREATE TRIGGER update_wallets_updated_at BEFORE UPDATE ON wallets
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE OR REPLACE FUNCTION create_default_data(p_company_id UUID)
 RETURNS void AS $$
 BEGIN

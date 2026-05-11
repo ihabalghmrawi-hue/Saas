@@ -32,7 +32,10 @@
       "PowerShell(Remove-Item -Recurse -Force \"d:\\\\financeapp\\\\src\\\\app\\\\admin\" -Confirm:$false)",
       "PowerShell(Remove-Item -Recurse -Force \"d:\\\\financeapp\\\\src\\\\app\\\\api\\\\admin\" -Confirm:$false)",
       "PowerShell(Remove-Item -Force \"d:\\\\financeapp\\\\src\\\\lib\\\\admin-guard.ts\" -Confirm:$false)",
-      "PowerShell(Get-ChildItem -Recurse \"d:\\\\financeapp-admin\\\\src\" | Where-Object { -not $_.PSIsContainer } | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"d:\\\\financeapp-admin\\\\\", \"\"\\) })"
+      "PowerShell(Get-ChildItem -Recurse \"d:\\\\financeapp-admin\\\\src\" | Where-Object { -not $_.PSIsContainer } | Select-Object FullName | ForEach-Object { $_.FullName.Replace\\(\"d:\\\\financeapp-admin\\\\\", \"\"\\) })",
+      "Bash(git rm *)",
+      "Bash(gh repo *)",
+      "PowerShell($token = \"your-github-token\"; $body = '{\"name\":\"finance-saas-admin\",\"private\":true,\"description\":\"SaaS Admin Panel - standalone Next.js app on port 3001\"}'; $response = Invoke-RestMethod -Uri \"https://api.github.com/user/repos\" -Method Post -Headers @{Authorization=\"token $token\"; \"Content-Type\"=\"application/json\"} -Body $body; $response.html_url)"
     ],
     "additionalDirectories": [
       "d:\\"

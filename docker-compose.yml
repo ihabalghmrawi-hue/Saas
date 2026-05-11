@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: finance-saas-app
+
+    ports:
+      - "3000:3000"
+
+    env_file:
+      - .env.local
+
+    environment:
+      NODE_ENV: development
+
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+
+    depends_on:
+      - redis
+
+    networks:
+      - finance-network
+
+    restart: unless-stopped
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  redis:
+    image: redis:alpine
+
+    container_name: finance-redis
+
+    ports:
+      - "6379:6379"
+
+    restart: unless-stopped
+
+    networks:
+      - finance-network
+
+networks:
+  finance-network:
+    driver: bridge
