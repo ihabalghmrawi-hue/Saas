@@ -1,40 +1,205 @@
 version: '3.9'
 
+x-logging: &default-logging
+  driver: 'json-file'
+  options:
+    max-size: '10m'
+    max-file: '3'
+
+x-deploy: &default-deploy
+  restart: always
+  logging: *default-logging
+
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      target: runner
     container_name: finance-saas-prod
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       NODE_ENV: production
+      APP_VERSION: ${APP_VERSION:-1.0.0}
       NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      SESSION_SECRET: ${SESSION_SECRET}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME}
       NEXT_PUBLIC_CURRENCY_DEFAULT: ${NEXT_PUBLIC_CURRENCY_DEFAULT}
       NEXT_PUBLIC_LANGUAGE_DEFAULT: ${NEXT_PUBLIC_LANGUAGE_DEFAULT}
       SUPER_ADMIN_EMAILS: ${SUPER_ADMIN_EMAILS}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_started
     networks:
       - finance-network
-    restart: always
+    <<: *default-deploy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 3s
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/health']
+      interval: 15s
+      timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  worker-accounting:
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    container_name: finance-worker-accounting
+    environment:
+      NODE_ENV: production
+      WORKER_TYPE: accounting
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      - redis
+    networks:
+      - finance-network
+    <<: *default-deploy
     deploy:
       resources:
         limits:
           cpus: '1'
           memory: 512M
-        reservations:
+
+  worker-reconciliation:
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    container_name: finance-worker-reconciliation
+    environment:
+      NODE_ENV: production
+      WORKER_TYPE: reconciliation
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      - redis
+    networks:
+      - finance-network
+    <<: *default-deploy
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  worker-recurring:
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    container_name: finance-worker-recurring
+    environment:
+      NODE_ENV: production
+      WORKER_TYPE: recurring
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      - redis
+    networks:
+      - finance-network
+    <<: *default-deploy
+    deploy:
+      resources:
+        limits:
           cpus: '0.5'
           memory: 256M
+
+  worker-backup:
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    container_name: finance-worker-backup
+    environment:
+      NODE_ENV: production
+      WORKER_TYPE: backup
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      REDIS_URL: redis://redis:6379
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      - redis
+    networks:
+      - finance-network
+    <<: *default-deploy
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+
+  cron:
+    build:
+      context: .
+      dockerfile: docker/cron/Dockerfile
+    container_name: finance-cron
+    environment:
+      NODE_ENV: production
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      - redis
+    networks:
+      - finance-network
+    <<: *default-deploy
+
+  redis:
+    image: redis:7-alpine
+    container_name: finance-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - finance-network
+    <<: *default-deploy
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: finance-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    ports:
+      - '9090:9090'
+    networks:
+      - finance-network
+    <<: *default-deploy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+volumes:
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
 
 networks:
   finance-network:

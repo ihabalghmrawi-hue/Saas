@@ -1,0 +1,53 @@
+groups:
+  - name: finance-saas
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: rate(error_count[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: finance-saas
+        annotations:
+          summary: High error rate detected
+          description: Error rate is {{ $value | humanizePercentage }} over last 5 minutes
+
+      - alert: HighMemoryUsage
+        expr: process_memory_bytes > 400 * 1024 * 1024
+        for: 3m
+        labels:
+          severity: warning
+          service: finance-saas
+        annotations:
+          summary: High memory usage
+          description: Memory usage is {{ $value | humanize1024 }}B
+
+      - alert: QueueDepthGrowing
+        expr: rate(queue_depth[5m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: finance-saas
+        annotations:
+          summary: Queue depth increasing
+          description: Queue depth is growing at {{ $value }} per second
+
+      - alert: WorkerDown
+        expr: up{job="finance-workers"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: finance-worker
+        annotations:
+          summary: Worker is down
+          description: Worker {{ $labels.instance }} has been unreachable for over 1 minute
+
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 30s
+        labels:
+          severity: critical
+          service: redis
+        annotations:
+          summary: Redis is down
+          description: Redis instance {{ $labels.instance }} is unreachable

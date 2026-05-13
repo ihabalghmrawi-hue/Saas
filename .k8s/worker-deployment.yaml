@@ -1,0 +1,169 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-worker-accounting
+  namespace: finance
+  labels:
+    app: finance-worker
+    worker-type: accounting
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: finance-worker
+      worker-type: accounting
+  template:
+    metadata:
+      labels:
+        app: finance-worker
+        worker-type: accounting
+    spec:
+      containers:
+        - name: worker
+          image: finance-worker:latest
+          env:
+            - name: WORKER_TYPE
+              value: accounting
+            - name: NODE_ENV
+              value: production
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: finance-secrets
+                  key: supabase_service_role_key
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            initialDelaySeconds: 15
+            periodSeconds: 15
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-worker-reconciliation
+  namespace: finance
+  labels:
+    app: finance-worker
+    worker-type: reconciliation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: finance-worker
+      worker-type: reconciliation
+  template:
+    metadata:
+      labels:
+        app: finance-worker
+        worker-type: reconciliation
+    spec:
+      containers:
+        - name: worker
+          image: finance-worker:latest
+          env:
+            - name: WORKER_TYPE
+              value: reconciliation
+            - name: NODE_ENV
+              value: production
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: finance-secrets
+                  key: supabase_service_role_key
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-worker-recurring
+  namespace: finance
+  labels:
+    app: finance-worker
+    worker-type: recurring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: finance-worker
+      worker-type: recurring
+  template:
+    metadata:
+      labels:
+        app: finance-worker
+        worker-type: recurring
+    spec:
+      containers:
+        - name: worker
+          image: finance-worker:latest
+          env:
+            - name: WORKER_TYPE
+              value: recurring
+            - name: NODE_ENV
+              value: production
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: finance-secrets
+                  key: supabase_service_role_key
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-worker-backup
+  namespace: finance
+  labels:
+    app: finance-worker
+    worker-type: backup
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: finance-worker
+      worker-type: backup
+  template:
+    metadata:
+      labels:
+        app: finance-worker
+        worker-type: backup
+    spec:
+      containers:
+        - name: worker
+          image: finance-worker:latest
+          env:
+            - name: WORKER_TYPE
+              value: backup
+            - name: NODE_ENV
+              value: production
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: finance-secrets
+                  key: supabase_service_role_key
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

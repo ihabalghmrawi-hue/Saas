@@ -1,0 +1,148 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finance-saas
+  namespace: finance
+  labels:
+    app: finance-saas
+    tier: frontend
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: finance-saas
+  template:
+    metadata:
+      labels:
+        app: finance-saas
+    spec:
+      containers:
+        - name: app
+          image: finance-saas:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: NODE_ENV
+              value: 'production'
+            - name: APP_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: finance-config
+                  key: app_version
+            - name: NEXT_PUBLIC_SUPABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: finance-secrets
+                  key: supabase_url
+            - name: NEXT_PUBLIC_SUPABASE_ANON_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: finance-secrets
+                  key: supabase_anon_key
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: finance-secrets
+                  key: supabase_service_role_key
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: finance-secrets
+                  key: session_secret
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: finance-config
+                  key: log_level
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: finance-secrets
+                  key: redis_url
+            - name: REDIS_SENTINEL_URLS
+              valueFrom:
+                secretKeyRef:
+                  name: finance-secrets
+                  key: redis_sentinel_urls
+            - name: REDIS_CLUSTER_MODE
+              valueFrom:
+                configMapKeyRef:
+                  name: finance-config
+                  key: redis_cluster_mode
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: '1'
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health/readiness
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+          startupProbe:
+            httpGet:
+              path: /api/health/startup
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: finance-saas
+  namespace: finance
+spec:
+  selector:
+    app: finance-saas
+  ports:
+    - port: 3000
+      targetPort: 3000
+      name: http
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: finance-saas
+  namespace: finance
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: finance-saas
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
