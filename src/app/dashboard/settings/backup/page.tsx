@@ -6,7 +6,7 @@ import { getCompanyId } from '@/lib/tenant'
 export const dynamic = 'force-dynamic'
 
 export default async function BackupPage() {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
 
   const { data: snapshots } = await supabase

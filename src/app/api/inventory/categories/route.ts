@@ -88,7 +88,7 @@ CATEGORY_SEEDS.dress_rental = CATEGORY_SEEDS.clothing
 
 export async function GET() {
   const supabase   = createClient()
-  const companyId  = getCompanyId()
+  const companyId  = await getCompanyId()
   const { data, error } = await supabase
     .from('product_categories')
     .select('*')
@@ -101,7 +101,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const body      = await req.json()
 
   // Seed defaults for a business type
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const { id }    = await req.json()
   if (!id) return NextResponse.json({ error: 'id مطلوب' }, { status: 400 })
   const { error } = await admin.from('product_categories')

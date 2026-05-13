@@ -7,7 +7,7 @@ import { TopBar } from '@/components/layout/topbar'
 import { QuickActionBar } from '@/components/layout/quick-action-bar'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const h = headers()
+  const h = await headers()
 
   const dec = (v: string | null, fallback = '') => { try { return decodeURIComponent(v || fallback) } catch { return v || fallback } }
 

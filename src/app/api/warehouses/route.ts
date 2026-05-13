@@ -5,7 +5,7 @@ import { getCompanyId } from '@/lib/tenant'
 import { logAudit } from '@/lib/audit'
 
 export async function GET() {
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const supabase  = createClient()
   const { data, error } = await supabase
     .from('warehouses')
@@ -19,7 +19,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const admin     = createAdminClient()
   const body      = await req.json()
 
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const admin     = createAdminClient()
   const body      = await req.json()
   const { id, ...update } = body
@@ -66,7 +66,7 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const admin     = createAdminClient()
   const { id }    = await req.json()
 

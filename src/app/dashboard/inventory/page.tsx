@@ -7,9 +7,9 @@ import { getCompanyId, getCurrency } from '@/lib/tenant'
 export const dynamic = 'force-dynamic'
 
 export default async function InventoryPage() {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
-  const businessType = headers().get('x-business-type') || 'retail'
+  const businessType = (await headers()).get('x-business-type') || 'retail'
   const features = getFeatures(businessType)
 
   const [{ data: products }, { data: categories }, { data: units }, { data: warehouses }] = await Promise.all([
@@ -30,7 +30,7 @@ export default async function InventoryPage() {
       units={units || []}
       warehouses={warehouses || []}
       companyId={COMPANY_ID}
-      currency={getCurrency()}
+      currency={await getCurrency()}
       features={features}
     />
   )

@@ -8,8 +8,8 @@ const BUSINESS_TYPE = process.env.NEXT_PUBLIC_BUSINESS_TYPE || 'retail'
 const CONFIRM_PHRASE = 'DELETE MY BUSINESS DATA'
 
 export async function POST(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
-  const h         = headers()
+  const COMPANY_ID = await getCompanyId()
+  const h         = await headers()
   const staffName = h.get('x-staff-name') || ''
   const staffRole = h.get('x-staff-role')  || ''
 

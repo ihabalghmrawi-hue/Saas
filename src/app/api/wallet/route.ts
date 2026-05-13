@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/audit'
 
 export async function GET() {
   const supabase  = createClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const { data, error } = await supabase
     .from('wallets')
     .select('*')
@@ -20,7 +20,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const body      = await req.json()
   const { action } = body
 
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const { id }    = await req.json()
   if (!id) return NextResponse.json({ error: 'id مطلوب' }, { status: 400 })
 

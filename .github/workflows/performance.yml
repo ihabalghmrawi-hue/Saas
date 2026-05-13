@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────
+# Performance Pipeline — Bundle analysis + build metrics
+# Tracks size regressions and build time trends
+# ─────────────────────────────────────────────────────────────
+
+name: Performance
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle-analysis:
+    name: Bundle Size
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Build with stats
+        run: npm run build
+        env:
+          ANALYZE: true
+      - name: Analyze bundle
+        run: |
+          npx next-bundle-analyzer .next/stats.json 2>/dev/null || \
+          echo "Bundle analysis skipped (install @next/bundle-analyzer for detailed reports)"
+      - name: Report build output size
+        run: |
+          if [ -d ".next" ]; then
+            echo "## Build Output Size" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Directory | Size |" >> $GITHUB_STEP_SUMMARY
+            echo "|-----------|------|" >> $GITHUB_STEP_SUMMARY
+            du -sh .next/static .next/server .next 2>/dev/null | while read size path; do
+              echo "| $path | $size |" >> $GITHUB_STEP_SUMMARY
+            done
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  build-metrics:
+    name: Build Time
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Measure build time
+        id: build
+        run: |
+          START=$(date +%s%N)
+          npm run build
+          END=$(date +%s%N)
+          DURATION=$(( (END - START) / 1000000 ))
+          echo "duration=$DURATION" >> $GITHUB_OUTPUT
+          echo "## Build Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Duration:** $((DURATION / 1000))s $((DURATION % 1000))ms" >> $GITHUB_STEP_SUMMARY
+      - name: Cache build output
+        uses: actions/cache@v4
+        with:
+          path: |
+            .next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-

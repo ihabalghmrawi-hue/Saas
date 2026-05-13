@@ -5,19 +5,26 @@ import { getCompanyId } from '@/lib/tenant'
 
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> }
 ) {
-  const COMPANY_ID = getCompanyId()
+  const { id } = await context.params
+
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
 
   const { data: snap } = await supabase
     .from('backup_snapshots')
     .select('storage_path')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('company_id', COMPANY_ID)
     .single()
 
-  if (!snap) return NextResponse.json({ error: 'النسخة غير موجودة' }, { status: 404 })
+  if (!snap) {
+    return NextResponse.json(
+      { error: 'النسخة غير موجودة' },
+      { status: 404 }
+    )
+  }
 
   // Delete file from storage (non-fatal if file is already gone)
   await deleteBackupFile(snap.storage_path)
@@ -25,9 +32,15 @@ export async function DELETE(
   const { error } = await supabase
     .from('backup_snapshots')
     .delete()
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('company_id', COMPANY_ID)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    )
+  }
+
   return NextResponse.json({ ok: true })
 }

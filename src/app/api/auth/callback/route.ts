@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { recordLoginAttempt, createUserSession } from '@/lib/auth-tracking'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -8,7 +9,7 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get('next') ?? '/dashboard'
 
   if (code) {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -21,9 +22,16 @@ export async function GET(request: NextRequest) {
         },
       },
     )
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error && data?.user) {
+      const user = data.user
+      recordLoginAttempt(supabase, user.email ?? 'oauth', true, request)
+      createUserSession(supabase, user.id, request)
+      const res = NextResponse.redirect(`${origin}${next}`)
+      res.cookies.set('app-session-active', 'true', {
+        httpOnly: true, secure: true, sameSite: 'lax', path: '/',
+      })
+      return res
     }
   }
 

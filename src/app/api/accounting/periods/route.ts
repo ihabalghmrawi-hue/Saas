@@ -11,7 +11,7 @@ import {
 // ── GET: list fiscal years and periods ────────────────────────
 export async function GET(req: NextRequest) {
   const supabase   = createClient()
-  const company_id = req.headers.get('x-tenant-id') || getCompanyId()
+  const company_id = req.headers.get('x-tenant-id') || await getCompanyId()
 
   try {
     const [fyResult, periodsResult] = await Promise.all([
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
 // ── POST: create fiscal year OR close period ──────────────────
 export async function POST(req: NextRequest) {
   const supabase   = createAdminClient()
-  const company_id = req.headers.get('x-tenant-id') || getCompanyId()
+  const company_id = req.headers.get('x-tenant-id') || await getCompanyId()
 
   try {
     const body   = await req.json()
@@ -106,6 +106,41 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'معرف السنة المالية مطلوب' }, { status: 400 })
       }
       await generatePeriods(supabase, company_id, fiscal_year_id)
+      return NextResponse.json({ ok: true })
+    }
+
+    return NextResponse.json({ error: 'إجراء غير معروف' }, { status: 400 })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
+// ── PATCH: Period lock/unlock ─────────────────────────────────
+export async function PATCH(req: NextRequest) {
+  const supabase = createAdminClient()
+  const company_id = req.headers.get('x-tenant-id') || await getCompanyId()
+
+  try {
+    const body = await req.json()
+    const { period_id, action } = body
+
+    if (!period_id || !action) {
+      return NextResponse.json({ error: 'معرف الفترة والإجراء مطلوبان' }, { status: 400 })
+    }
+
+    if (action === 'lock') {
+      const result = await closePeriod(supabase, company_id, period_id)
+      if (!result.ok) return NextResponse.json({ error: result.error }, { status: 422 })
+      return NextResponse.json(result)
+    }
+
+    if (action === 'unlock') {
+      const { error } = await supabase
+        .from('accounting_periods')
+        .update({ status: 'open' })
+        .eq('id', period_id)
+        .eq('company_id', company_id)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
       return NextResponse.json({ ok: true })
     }
 

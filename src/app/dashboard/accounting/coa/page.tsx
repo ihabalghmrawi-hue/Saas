@@ -7,8 +7,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function CoaPage() {
   const supabase   = createClient()
-  const company_id = getCompanyId()
-  const currency   = getCurrency()
+  const company_id = await getCompanyId()
+  const currency   = await getCurrency()
 
   const { data: accounts } = await supabase
     .from('accounts')

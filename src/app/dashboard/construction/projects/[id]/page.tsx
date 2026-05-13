@@ -7,8 +7,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function ProjectDetailPage({ params }: { params: { id: string } }) {
   const admin    = createAdminClient()
-  const COMPANY  = getCompanyId()
-  const CURRENCY = getCurrency()
+  const COMPANY  = await getCompanyId()
+  const CURRENCY = await getCurrency()
 
   const [{ data: project }, { data: tasks }, { data: expenses }, { data: materials }, { data: payments }, { data: workers }] = await Promise.all([
     admin.from('con_projects').select('*').eq('id', params.id).eq('company_id', COMPANY).single(),

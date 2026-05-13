@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function PaymentsPage() {
   const admin   = createAdminClient()
-  const COMPANY = getCompanyId()
-  const CURRENCY = getCurrency()
+  const COMPANY = await getCompanyId()
+  const CURRENCY = await getCurrency()
 
   const [{ data: payments }, { data: projects }] = await Promise.all([
     admin.from('con_payments').select('*, con_projects(name)').eq('company_id', COMPANY).order('payment_date', { ascending: false }),

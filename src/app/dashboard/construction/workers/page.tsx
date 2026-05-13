@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function WorkersPage() {
   const admin    = createAdminClient()
-  const COMPANY  = getCompanyId()
-  const CURRENCY = getCurrency()
+  const COMPANY  = await getCompanyId()
+  const CURRENCY = await getCurrency()
 
   const { data: workers } = await admin
     .from('con_workers')

@@ -23,10 +23,21 @@ function LoginForm() {
 
     const { error: err } = await createClient().auth.signInWithPassword({ email, password })
     if (err) {
+      fetch('/api/auth/track-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, success: false }),
+      })
       setError('البريد الإلكتروني أو كلمة المرور غير صحيحة')
       setLoading(false)
       return
     }
+
+    fetch('/api/auth/track-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, success: true }),
+    })
 
     // Mark this browser session as explicitly authenticated.
     // This session-only cookie disappears when the browser closes so the user

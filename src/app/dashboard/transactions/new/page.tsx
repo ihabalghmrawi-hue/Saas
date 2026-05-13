@@ -3,8 +3,8 @@ import { TransactionForm } from '@/components/forms/transaction-form'
 import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export default async function NewTransactionPage() {
-  const CURRENCY = getCurrency()
-  const COMPANY_ID = getCompanyId()
+  const CURRENCY = await getCurrency()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
 
   const [{ data: categories }, { data: parties }, { data: wallets }] = await Promise.all([

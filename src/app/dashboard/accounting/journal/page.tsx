@@ -6,8 +6,8 @@ export const dynamic = 'force-dynamic'
 
 export default async function JournalPage() {
   const supabase   = createClient()
-  const company_id = getCompanyId()
-  const currency   = getCurrency()
+  const company_id = await getCompanyId()
+  const currency   = await getCurrency()
 
   // Fetch initial data: latest 50 journal entries
   const { data: entries } = await supabase

@@ -9,8 +9,8 @@ export default async function TransactionsPage({
 }: {
   searchParams: { type?: string; page?: string; search?: string; category?: string }
 }) {
-  const CURRENCY = getCurrency()
-  const COMPANY_ID = getCompanyId()
+  const CURRENCY = await getCurrency()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
 
   const page = parseInt(searchParams.page || '1')

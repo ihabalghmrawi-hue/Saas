@@ -6,7 +6,7 @@ import { getCompanyId } from '@/lib/tenant'
 export const dynamic = 'force-dynamic'
 
 export default async function TrashPage() {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const items = await listTrash(COMPANY_ID)
   return <TrashClient initialItems={items} modules={ENTITY_MODULES} />
 }

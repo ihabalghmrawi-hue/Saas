@@ -1,111 +1,76 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useMemo } from 'react'
 import {
-  TrendingUp, TrendingDown, Scale, DollarSign,
-  Printer, RefreshCw, CheckCircle, AlertTriangle,
-  ChevronDown, ChevronUp,
+  BarChart3, Wallet, Scale, DollarSign,
+  ChevronDown, ChevronUp, Download, RefreshCw,
+  Loader2,
 } from 'lucide-react'
+import Link from 'next/link'
 
-interface StatementLine {
-  code:      string
-  name:      string
-  name_ar:   string
-  amount:    number
-  children?: StatementLine[]
-}
+interface StatementLine { code: string; name: string; name_ar: string; amount: number; children?: StatementLine[] }
 
 interface IncomeStatement {
-  period_from:        string
-  period_to:          string
-  revenue:            StatementLine[]
-  cogs:               StatementLine[]
-  gross_profit:       number
-  operating_expenses: StatementLine[]
-  operating_income:   number
-  other_income:       StatementLine[]
-  net_income:         number
+  period_from: string; period_to: string
+  revenue: StatementLine[]; cogs: StatementLine[]
+  gross_profit: number; operating_expenses: StatementLine[]
+  operating_income: number; other_income: StatementLine[]
+  net_income: number
 }
 
 interface BalanceSheet {
   as_of_date: string
-  assets:     { current: StatementLine[]; fixed: StatementLine[]; total: number }
+  assets: { current: StatementLine[]; fixed: StatementLine[]; total: number }
   liabilities: { current: StatementLine[]; long_term: StatementLine[]; total: number }
-  equity:     { items: StatementLine[]; total: number }
+  equity: { items: StatementLine[]; total: number }
   is_balanced: boolean
 }
 
 interface TrialBalanceLine {
-  account_id:    string
-  code:          string
-  name:          string
-  name_ar:       string
-  type:          string
-  closing_debit:  number
-  closing_credit: number
-  balance:       number
+  code: string; name: string; name_ar: string; type: string
+  opening_debit: number; opening_credit: number
+  period_debit: number; period_credit: number
+  closing_debit: number; closing_credit: number
+  balance: number
 }
 
-interface TrialBalance {
-  as_of_date:   string
-  lines:        TrialBalanceLine[]
-  total_debit:  number
-  total_credit: number
-  is_balanced:  boolean
+interface TrialBalance { as_of_date: string; lines: TrialBalanceLine[]; total_debit: number; total_credit: number; is_balanced: boolean }
+
+interface CashFlow { period_from: string; period_to: string; operating: { items: StatementLine[]; total: number }; investing: { items: StatementLine[]; total: number }; financing: { items: StatementLine[]; total: number }; net_change: number; opening_cash: number; closing_cash: number }
+
+function formatNumber(n: number) {
+  return n.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-interface CashFlow {
-  period_from:  string
-  period_to:    string
-  operating:    { items: StatementLine[]; total: number }
-  investing:    { items: StatementLine[]; total: number }
-  financing:    { items: StatementLine[]; total: number }
-  net_change:   number
-  opening_cash: number
-  closing_cash: number
-}
+function StatementLineRow({ line, depth = 0 }: { line: StatementLine; depth?: number }) {
+  const [expanded, setExpanded] = useState(depth < 1)
+  const hasChildren = line.children && line.children.length > 0
 
-function fmt(n: number, currency = '') {
-  const abs = Math.abs(n)
-  const s   = abs.toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  return n < 0 ? `(${s})` : s
-}
-
-function AmountRow({ label, amount, indent = 0, bold = false, highlight = '' }: {
-  label: string; amount: number; indent?: number; bold?: boolean; highlight?: string
-}) {
   return (
-    <div className={`flex items-center justify-between py-1.5 ${highlight} ${indent ? `pr-${indent * 4}` : ''}`}
-      style={{ paddingRight: indent ? `${indent * 16}px` : undefined }}>
-      <span className={`text-sm ${bold ? 'font-bold text-gray-900' : 'text-gray-700'}`}>{label}</span>
-      <span className={`text-sm font-medium ${
-        amount < 0 ? 'text-red-600' : bold ? 'text-gray-900 font-bold' : 'text-gray-700'
-      }`}>
-        {fmt(amount)}
-      </span>
-    </div>
-  )
-}
-
-function SectionLines({ title, lines }: { title: string; lines: StatementLine[] }) {
-  if (lines.length === 0) return null
-  return (
-    <div className="mb-3">
-      <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 border-b pb-1">{title}</p>
-      {lines.map((l, i) => (
-        <AmountRow key={i} label={l.name_ar} amount={l.amount} indent={1} />
+    <div>
+      <div className={`flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 rounded ${
+        depth === 0 ? 'text-sm font-bold text-gray-900' : depth === 1 ? 'text-sm font-semibold text-gray-800' : 'text-xs text-gray-700'
+      }`}
+        style={{ paddingRight: `${12 + depth * 16}px` }}
+      >
+        {hasChildren && (
+          <button onClick={() => setExpanded(!expanded)} className="text-gray-400">
+            {expanded ? <ChevronDown className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+          </button>
+        )}
+        {!hasChildren && <span className="w-3" />}
+        <span className="font-mono text-xs text-blue-700 ml-2">{line.code}</span>
+        <span className="flex-1">{line.name_ar}</span>
+        <span className={`text-left w-28 ${line.amount < 0 ? 'text-red-600' : ''}`}>
+          {formatNumber(Math.abs(line.amount))}
+        </span>
+      </div>
+      {hasChildren && expanded && line.children?.map((child, i) => (
+        <StatementLineRow key={i} line={child} depth={depth + 1} />
       ))}
     </div>
   )
 }
-
-const QUICK_RANGES = [
-  { label: 'هذا الشهر',     value: 'month' },
-  { label: 'هذا الربع',     value: 'quarter' },
-  { label: 'هذه السنة',     value: 'year' },
-  { label: 'مخصص',          value: 'custom' },
-]
 
 export function StatementsClient({
   incomeStatement, balanceSheet, trialBalance, cashFlow,
@@ -113,62 +78,80 @@ export function StatementsClient({
   initialTab, initialDateFrom, initialDateTo, initialAsOf,
 }: {
   incomeStatement: IncomeStatement | null
-  balanceSheet:    BalanceSheet | null
-  trialBalance:    TrialBalance | null
-  cashFlow:        CashFlow | null
-  company_id:      string
-  currency:        string
-  initialTab:      string
+  balanceSheet: BalanceSheet | null
+  trialBalance: TrialBalance | null
+  cashFlow: CashFlow | null
+  company_id: string
+  currency: string
+  initialTab?: string
   initialDateFrom: string
-  initialDateTo:   string
-  initialAsOf:     string
+  initialDateTo: string
+  initialAsOf: string
 }) {
-  const router              = useRouter()
-  const [tab, setTab]       = useState(initialTab)
+  const [activeTab, setActiveTab] = useState(initialTab || 'income')
   const [dateFrom, setDateFrom] = useState(initialDateFrom)
-  const [dateTo, setDateTo]     = useState(initialDateTo)
-  const [asOf, setAsOf]         = useState(initialAsOf)
-  const [range, setRange]       = useState('month')
-  const [loading, setLoading]   = useState(false)
-
-  function applyRange(r: string) {
-    const now  = new Date()
-    const year = now.getFullYear()
-    const m    = now.getMonth()
-    let from = '', to = now.toISOString().slice(0, 10)
-
-    if (r === 'month') {
-      from = `${year}-${String(m + 1).padStart(2, '0')}-01`
-    } else if (r === 'quarter') {
-      const q = Math.floor(m / 3)
-      from = `${year}-${String(q * 3 + 1).padStart(2, '0')}-01`
-    } else if (r === 'year') {
-      from = `${year}-01-01`
-    }
-    setRange(r)
-    if (r !== 'custom') {
-      setDateFrom(from)
-      setDateTo(to)
-    }
-  }
-
-  function handleRefresh() {
-    setLoading(true)
-    const params = new URLSearchParams({ type: tab, date_from: dateFrom, date_to: dateTo, as_of: asOf })
-    router.push(`/dashboard/accounting/statements?${params}`)
-  }
-
-  const is = incomeStatement
-  const bs = balanceSheet
-  const tb = trialBalance
-  const cf = cashFlow
+  const [dateTo, setDateTo] = useState(initialDateTo)
+  const [asOf, setAsOf] = useState(initialAsOf)
+  const [loading, setLoading] = useState(false)
+  const [statements, setStatements] = useState({
+    income: incomeStatement,
+    balance: balanceSheet,
+    trial: trialBalance,
+    cashflow: cashFlow,
+  })
 
   const tabs = [
-    { id: 'income',   label: 'قائمة الدخل',       icon: TrendingUp },
-    { id: 'balance',  label: 'الميزانية العمومية', icon: Scale },
-    { id: 'trial',    label: 'ميزان المراجعة',     icon: CheckCircle },
-    { id: 'cashflow', label: 'التدفقات النقدية',   icon: DollarSign },
+    { id: 'income', label: 'قائمة الدخل', icon: BarChart3, badge: `${formatNumber(statements.income?.net_income || 0)}` },
+    { id: 'balance', label: 'الميزانية', icon: Wallet, badge: statements.balance?.is_balanced ? 'متوازنة' : 'غير متوازنة' },
+    { id: 'trial', label: 'ميزان المراجعة', icon: Scale, badge: statements.trial?.is_balanced ? 'متوازن' : 'غير متوازن' },
+    { id: 'cashflow', label: 'التدفقات النقدية', icon: DollarSign, badge: `${formatNumber(statements.cashflow?.closing_cash || 0)}` },
   ]
+
+  async function refresh() {
+    setLoading(true)
+    const params = new URLSearchParams()
+    if (activeTab === 'income' || activeTab === 'cashflow') {
+      params.set('date_from', dateFrom); params.set('date_to', dateTo)
+    } else {
+      params.set('as_of', asOf)
+    }
+
+    try {
+      const res = await fetch(`/api/accounting/statements?type=${activeTab}&${params.toString()}`, {
+        headers: { 'x-tenant-id': company_id },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setStatements(prev => ({
+          ...prev,
+          [activeTab === 'income' ? 'income' : activeTab === 'balance' ? 'balance' : activeTab === 'trial' ? 'trial' : 'cashflow']: data.data,
+        }))
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function exportCSV() {
+    const lines = activeTab === 'income'
+      ? [
+        ...(statements.income?.revenue || []).map(l => ({ code: l.code, name: l.name_ar, amount: l.amount })),
+        ...(statements.income?.operating_expenses || []).map(l => ({ code: l.code, name: l.name_ar, amount: l.amount })),
+      ]
+      : activeTab === 'trial'
+        ? (statements.trial?.lines || []).map(l => ({ code: l.code, name: l.name_ar, debit: l.period_debit, credit: l.period_credit }))
+        : []
+
+    if (lines.length === 0) return
+
+    const headers = Object.keys(lines[0]).join(',')
+    const csv = [headers, ...lines.map(l => Object.values(l).join(','))].join('\n')
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `${activeTab}-${dateTo}.csv`; a.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="p-6 space-y-5" dir="rtl">
@@ -176,361 +159,287 @@ export function StatementsClient({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">القوائم المالية</h1>
-          <p className="text-sm text-gray-500 mt-1">التقارير المالية الشاملة</p>
+          <p className="text-sm text-gray-500 mt-1">التقارير المالية للشركة</p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50"
-          >
-            <Printer className="h-4 w-4" />
-            طباعة
+          <button onClick={exportCSV} className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
+            <Download className="h-4 w-4" /> تصدير CSV
           </button>
-          <button
-            onClick={handleRefresh}
-            disabled={loading}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            تحديث
+          <button onClick={refresh} disabled={loading} className="flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50">
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> تحديث
           </button>
         </div>
       </div>
 
-      {/* Date Controls */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-        <div className="flex flex-wrap items-center gap-4">
-          {/* Quick range */}
-          <div className="flex gap-1">
-            {QUICK_RANGES.map(r => (
-              <button
-                key={r.value}
-                onClick={() => applyRange(r.value)}
-                className={`px-3 py-1.5 text-xs rounded-lg border transition-colors ${
-                  range === r.value
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Date inputs */}
-          <div className="flex items-center gap-2">
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={e => { setDateFrom(e.target.value); setRange('custom') }}
-              className="px-2 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <span className="text-gray-400 text-xs">—</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={e => { setDateTo(e.target.value); setRange('custom') }}
-              className="px-2 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {tab === 'balance' && (
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-gray-500">حتى تاريخ:</label>
-              <input
-                type="date"
-                value={asOf}
-                onChange={e => setAsOf(e.target.value)}
-                className="px-2 py-1.5 border border-gray-200 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+      {/* Date Filters */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm flex gap-3 items-end">
+        {(activeTab === 'income' || activeTab === 'cashflow') ? (
+          <>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">من تاريخ</label>
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-          )}
-        </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">إلى تاريخ</label>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+          </>
+        ) : (
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">في تاريخ</label>
+            <input type="date" value={asOf} onChange={e => setAsOf(e.target.value)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
-        {tabs.map(t => {
-          const Icon = t.icon
+      <div className="flex gap-2 flex-wrap">
+        {tabs.map(tab => {
+          const Icon = tab.icon
           return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                tab === t.id
-                  ? 'border-blue-600 text-blue-700'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm border transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-blue-50 border-blue-200 text-blue-700 shadow-sm'
+                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+              }`}>
               <Icon className="h-4 w-4" />
-              {t.label}
+              {tab.label}
+              <span className="text-xs opacity-75">({tab.badge})</span>
             </button>
           )
         })}
       </div>
 
-      {/* ── INCOME STATEMENT ─────────────────────────────── */}
-      {tab === 'income' && is && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 max-w-2xl">
-          <div className="text-center mb-6">
-            <h2 className="text-lg font-bold text-gray-900">قائمة الدخل</h2>
-            <p className="text-sm text-gray-500">من {is.period_from} إلى {is.period_to}</p>
-          </div>
-
-          <SectionLines title="الإيرادات" lines={is.revenue} />
-          <AmountRow label="إجمالي الإيرادات" amount={is.revenue.reduce((s, l) => s + l.amount, 0)} bold />
-
-          <div className="my-3 border-t" />
-
-          <SectionLines title="تكلفة البضاعة المباعة" lines={is.cogs} />
-          <AmountRow label="إجمالي التكلفة" amount={is.cogs.reduce((s, l) => s + l.amount, 0)} bold />
-
-          <div className="my-3 border-t" />
-
-          <div className={`flex items-center justify-between py-2 px-3 rounded-lg ${
-            is.gross_profit >= 0 ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
-          }`}>
-            <span className="font-bold text-gray-900">مجمل الربح</span>
-            <span className={`font-bold text-lg ${is.gross_profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-              {fmt(is.gross_profit)}
-            </span>
-          </div>
-
-          <div className="my-3 border-t" />
-
-          <SectionLines title="المصروفات التشغيلية" lines={is.operating_expenses} />
-          <AmountRow label="إجمالي المصروفات التشغيلية" amount={is.operating_expenses.reduce((s, l) => s + l.amount, 0)} bold />
-
-          <div className="my-3 border-t" />
-
-          <AmountRow label="الربح التشغيلي" amount={is.operating_income} bold />
-
-          {is.other_income.length > 0 && (
-            <>
-              <div className="my-3 border-t" />
-              <SectionLines title="إيرادات أخرى" lines={is.other_income} />
-            </>
-          )}
-
-          <div className="mt-4 border-t-2 border-gray-800">
-            <div className={`flex items-center justify-between py-3 px-3 rounded-lg mt-2 ${
-              is.net_income >= 0 ? 'bg-green-100' : 'bg-red-100'
-            }`}>
-              <span className="font-bold text-lg text-gray-900">صافي الدخل</span>
-              <span className={`font-bold text-2xl ${is.net_income >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                {fmt(is.net_income)} {currency}
-              </span>
-            </div>
-          </div>
+      {loading && (
+        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-600 mb-3" />
+          <p className="text-gray-500">جاري تحديث البيانات...</p>
         </div>
       )}
 
-      {/* ── BALANCE SHEET ────────────────────────────────── */}
-      {tab === 'balance' && bs && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm text-gray-500">الميزانية العمومية حتى</span>
-            <span className="font-medium text-gray-900">{bs.as_of_date}</span>
-            <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-              bs.is_balanced ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}>
-              {bs.is_balanced ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-              {bs.is_balanced ? 'متوازنة' : 'غير متوازنة'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Assets */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-              <h3 className="font-bold text-blue-800 mb-4 text-base border-b pb-2">الأصول</h3>
-
-              <p className="text-xs font-bold text-gray-500 mb-2">الأصول المتداولة</p>
-              {bs.assets.current.map((l, i) => (
-                <AmountRow key={i} label={l.name_ar} amount={l.amount} indent={1} />
-              ))}
-              <AmountRow label="إجمالي الأصول المتداولة"
-                amount={bs.assets.current.reduce((s, l) => s + l.amount, 0)} bold />
-
-              <div className="my-2 border-t border-dashed" />
-
-              <p className="text-xs font-bold text-gray-500 mb-2">الأصول الثابتة</p>
-              {bs.assets.fixed.map((l, i) => (
-                <AmountRow key={i} label={l.name_ar} amount={l.amount} indent={1} />
-              ))}
-              <AmountRow label="إجمالي الأصول الثابتة"
-                amount={bs.assets.fixed.reduce((s, l) => s + l.amount, 0)} bold />
-
-              <div className="mt-3 border-t-2 border-blue-300">
-                <div className="flex items-center justify-between py-2 bg-blue-50 px-2 rounded mt-1">
-                  <span className="font-bold text-blue-900">إجمالي الأصول</span>
-                  <span className="font-bold text-blue-900 text-lg">{fmt(bs.assets.total)}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Liabilities + Equity */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-              <h3 className="font-bold text-orange-800 mb-4 text-base border-b pb-2">الخصوم وحقوق الملكية</h3>
-
-              <p className="text-xs font-bold text-gray-500 mb-2">الخصوم المتداولة</p>
-              {bs.liabilities.current.map((l, i) => (
-                <AmountRow key={i} label={l.name_ar} amount={l.amount} indent={1} />
-              ))}
-              <AmountRow label="إجمالي الخصوم المتداولة"
-                amount={bs.liabilities.current.reduce((s, l) => s + l.amount, 0)} bold />
-
-              {bs.liabilities.long_term.length > 0 && (
-                <>
-                  <div className="my-2 border-t border-dashed" />
-                  <p className="text-xs font-bold text-gray-500 mb-2">الخصوم طويلة الأجل</p>
-                  {bs.liabilities.long_term.map((l, i) => (
-                    <AmountRow key={i} label={l.name_ar} amount={l.amount} indent={1} />
-                  ))}
-                  <AmountRow label="إجمالي الخصوم طويلة الأجل"
-                    amount={bs.liabilities.long_term.reduce((s, l) => s + l.amount, 0)} bold />
-                </>
-              )}
-
-              <AmountRow label="إجمالي الخصوم" amount={bs.liabilities.total} bold />
-
-              <div className="my-2 border-t border-dashed" />
-
-              <p className="text-xs font-bold text-gray-500 mb-2">حقوق الملكية</p>
-              {bs.equity.items.map((l, i) => (
-                <AmountRow key={i} label={l.name_ar} amount={l.amount} indent={1} />
-              ))}
-              <AmountRow label="إجمالي حقوق الملكية" amount={bs.equity.total} bold />
-
-              <div className="mt-3 border-t-2 border-orange-300">
-                <div className="flex items-center justify-between py-2 bg-orange-50 px-2 rounded mt-1">
-                  <span className="font-bold text-orange-900">إجمالي الخصوم وحقوق الملكية</span>
-                  <span className="font-bold text-orange-900 text-lg">
-                    {fmt(bs.liabilities.total + bs.equity.total)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── TRIAL BALANCE ────────────────────────────────── */}
-      {tab === 'trial' && tb && (
+      {/* Income Statement */}
+      {activeTab === 'income' && statements.income && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
-            <span className="font-semibold text-gray-900">ميزان المراجعة — حتى {tb.as_of_date}</span>
-            <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-              tb.is_balanced ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}>
-              {tb.is_balanced ? <CheckCircle className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-              {tb.is_balanced ? 'متوازن' : 'غير متوازن'}
-            </span>
+          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-l from-blue-50 to-white">
+            <h2 className="text-lg font-bold text-gray-900">قائمة الدخل</h2>
+            <p className="text-xs text-gray-500">{statements.income.period_from} — {statements.income.period_to}</p>
           </div>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-gray-50 text-gray-500 text-xs border-b border-gray-100">
-                <th className="px-4 py-2 text-right font-medium">رمز</th>
-                <th className="px-4 py-2 text-right font-medium">اسم الحساب</th>
-                <th className="px-4 py-2 text-right font-medium">النوع</th>
-                <th className="px-4 py-2 text-left font-medium">مدين</th>
-                <th className="px-4 py-2 text-left font-medium">دائن</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {tb.lines.map(line => (
-                <tr key={line.account_id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2 font-mono text-xs text-blue-700">{line.code}</td>
-                  <td className="px-4 py-2 text-gray-900">{line.name_ar}</td>
-                  <td className="px-4 py-2 text-xs text-gray-500">{line.type}</td>
-                  <td className={`px-4 py-2 text-left font-medium ${line.closing_debit > 0 ? 'text-blue-700' : 'text-gray-300'}`}>
-                    {line.closing_debit > 0 ? fmt(line.closing_debit) : '—'}
-                  </td>
-                  <td className={`px-4 py-2 text-left font-medium ${line.closing_credit > 0 ? 'text-red-600' : 'text-gray-300'}`}>
-                    {line.closing_credit > 0 ? fmt(line.closing_credit) : '—'}
-                  </td>
-                </tr>
-              ))}
-              <tr className={`border-t-2 font-bold ${tb.is_balanced ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'}`}>
-                <td colSpan={3} className="px-4 py-2 text-right">الإجمالي</td>
-                <td className="px-4 py-2 text-left text-blue-800">{fmt(tb.total_debit)}</td>
-                <td className="px-4 py-2 text-left text-red-700">{fmt(tb.total_credit)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* ── CASH FLOW ────────────────────────────────────── */}
-      {tab === 'cashflow' && cf && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 max-w-2xl">
-          <div className="text-center mb-6">
-            <h2 className="text-lg font-bold text-gray-900">قائمة التدفقات النقدية</h2>
-            <p className="text-sm text-gray-500">من {cf.period_from} إلى {cf.period_to}</p>
-          </div>
-
-          {/* Opening */}
-          <AmountRow label="الرصيد النقدي الافتتاحي" amount={cf.opening_cash} bold />
-          <div className="my-3 border-t" />
-
-          {/* Operating */}
-          <p className="text-xs font-bold text-gray-500 uppercase mb-2">التدفقات من الأنشطة التشغيلية</p>
-          {cf.operating.items.map((l, i) => (
-            <AmountRow key={i} label={l.name_ar} amount={l.amount} indent={1} />
-          ))}
-          <AmountRow label="صافي التدفقات التشغيلية" amount={cf.operating.total} bold
-            highlight={cf.operating.total >= 0 ? 'bg-green-50 rounded px-2' : 'bg-red-50 rounded px-2'} />
-
-          {cf.investing.items.length > 0 && (
-            <>
-              <div className="my-3 border-t" />
-              <p className="text-xs font-bold text-gray-500 uppercase mb-2">التدفقات من الأنشطة الاستثمارية</p>
-              {cf.investing.items.map((l, i) => (
-                <AmountRow key={i} label={l.name_ar} amount={l.amount} indent={1} />
-              ))}
-              <AmountRow label="صافي التدفقات الاستثمارية" amount={cf.investing.total} bold />
-            </>
-          )}
-
-          {cf.financing.items.length > 0 && (
-            <>
-              <div className="my-3 border-t" />
-              <p className="text-xs font-bold text-gray-500 uppercase mb-2">التدفقات من الأنشطة التمويلية</p>
-              {cf.financing.items.map((l, i) => (
-                <AmountRow key={i} label={l.name_ar} amount={l.amount} indent={1} />
-              ))}
-              <AmountRow label="صافي التدفقات التمويلية" amount={cf.financing.total} bold />
-            </>
-          )}
-
-          <div className="mt-4 border-t-2 border-gray-800 space-y-2 pt-3">
-            <AmountRow label="صافي التغير في النقد" amount={cf.net_change} bold />
-            <div className={`flex items-center justify-between py-3 px-3 rounded-lg ${
-              cf.closing_cash >= 0 ? 'bg-blue-100' : 'bg-red-100'
+          <div className="p-4 space-y-6">
+            <section>
+              <h3 className="text-sm font-bold text-green-700 mb-2">الإيرادات</h3>
+              {statements.income.revenue.map((l, i) => <StatementLineRow key={i} line={l} />)}
+              <div className="flex items-center gap-2 px-3 py-2 mt-2 bg-green-50 rounded-lg border border-green-100">
+                <span className="flex-1 text-sm font-bold text-green-800">إجمالي الإيرادات</span>
+                <span className="text-sm font-bold text-green-700">{formatNumber(statements.income.revenue.reduce((s, l) => s + l.amount, 0))}</span>
+              </div>
+            </section>
+            <section>
+              <h3 className="text-sm font-bold text-orange-700 mb-2">تكلفة المبيعات</h3>
+              {statements.income.cogs.map((l, i) => <StatementLineRow key={i} line={l} />)}
+              <div className="flex items-center gap-2 px-3 py-2 mt-2 bg-orange-50 rounded-lg border border-orange-100">
+                <span className="flex-1 text-sm font-bold text-orange-800">إجمالي التكلفة</span>
+                <span className="text-sm font-bold text-orange-700">{formatNumber(statements.income.cogs.reduce((s, l) => s + l.amount, 0))}</span>
+              </div>
+            </section>
+            <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${
+              statements.income.gross_profit >= 0 ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'
             }`}>
-              <span className="font-bold text-lg text-gray-900">الرصيد النقدي الختامي</span>
-              <span className={`font-bold text-2xl ${cf.closing_cash >= 0 ? 'text-blue-800' : 'text-red-700'}`}>
-                {fmt(cf.closing_cash)} {currency}
-              </span>
+              <span className="flex-1 font-bold">إجمالي الربح</span>
+              <span className="font-bold">{formatNumber(statements.income.gross_profit)}</span>
+            </div>
+            <section>
+              <h3 className="text-sm font-bold text-red-700 mb-2">المصروفات التشغيلية</h3>
+              {statements.income.operating_expenses.map((l, i) => <StatementLineRow key={i} line={l} />)}
+              <div className="flex items-center gap-2 px-3 py-2 mt-2 bg-red-50 rounded-lg border border-red-100">
+                <span className="flex-1 text-sm font-bold text-red-800">إجمالي المصروفات</span>
+                <span className="text-sm font-bold text-red-700">{formatNumber(statements.income.operating_expenses.reduce((s, l) => s + l.amount, 0))}</span>
+              </div>
+            </section>
+            <div className={`flex items-center gap-2 px-4 py-4 rounded-lg border-2 ${
+              statements.income.net_income >= 0 ? 'bg-green-50 border-green-300 text-green-900' : 'bg-red-50 border-red-300 text-red-900'
+            }`}>
+              <span className="flex-1 text-lg font-bold">صافي الدخل</span>
+              <span className="text-lg font-bold">{formatNumber(statements.income.net_income)}</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Empty States */}
-      {tab === 'income'    && !is && <EmptyState />}
-      {tab === 'balance'   && !bs && <EmptyState />}
-      {tab === 'trial'     && !tb && <EmptyState />}
-      {tab === 'cashflow'  && !cf && <EmptyState />}
+      {/* Balance Sheet */}
+      {activeTab === 'balance' && statements.balance && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-l from-blue-50 to-white">
+            <h2 className="text-lg font-bold text-gray-900">الميزانية العمومية</h2>
+            <p className="text-xs text-gray-500">في تاريخ: {statements.balance.as_of_date}</p>
+            {statements.balance.is_balanced && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 mt-1 bg-green-100 text-green-700 rounded-full text-xs">
+                ✓ متوازنة
+              </span>
+            )}
+          </div>
+          <div className="p-4 space-y-6">
+            <section>
+              <h3 className="text-sm font-bold text-blue-700 mb-2">الأصول المتداولة</h3>
+              {statements.balance.assets.current.map((l, i) => <StatementLineRow key={i} line={l} />)}
+            </section>
+            <section>
+              <h3 className="text-sm font-bold text-blue-700 mb-2">الأصول الثابتة</h3>
+              {statements.balance.assets.fixed.map((l, i) => <StatementLineRow key={i} line={l} />)}
+            </section>
+            <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 rounded-lg border border-blue-200">
+              <span className="flex-1 font-bold text-blue-800">إجمالي الأصول</span>
+              <span className="font-bold text-blue-700">{formatNumber(statements.balance.assets.total)}</span>
+            </div>
+            <section>
+              <h3 className="text-sm font-bold text-orange-700 mb-2">الخصوم المتداولة</h3>
+              {statements.balance.liabilities.current.map((l, i) => <StatementLineRow key={i} line={l} />)}
+            </section>
+            <section>
+              <h3 className="text-sm font-bold text-orange-700 mb-2">الخصوم طويلة الأجل</h3>
+              {statements.balance.liabilities.long_term.map((l, i) => <StatementLineRow key={i} line={l} />)}
+            </section>
+            <div className="flex items-center gap-2 px-4 py-3 bg-orange-50 rounded-lg border border-orange-200">
+              <span className="flex-1 font-bold text-orange-800">إجمالي الخصوم</span>
+              <span className="font-bold text-orange-700">{formatNumber(statements.balance.liabilities.total)}</span>
+            </div>
+            <section>
+              <h3 className="text-sm font-bold text-purple-700 mb-2">حقوق الملكية</h3>
+              {statements.balance.equity.items.map((l, i) => <StatementLineRow key={i} line={l} />)}
+              <div className="flex items-center gap-2 px-3 py-2 mt-2 bg-purple-50 rounded-lg border border-purple-100">
+                <span className="flex-1 text-sm font-bold text-purple-800">إجمالي حقوق الملكية</span>
+                <span className="text-sm font-bold text-purple-700">{formatNumber(statements.balance.equity.total)}</span>
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {/* Trial Balance */}
+      {activeTab === 'trial' && statements.trial && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-l from-blue-50 to-white">
+            <h2 className="text-lg font-bold text-gray-900">ميزان المراجعة</h2>
+            <p className="text-xs text-gray-500">في تاريخ: {statements.trial.as_of_date}</p>
+            <div className={`text-xs mt-1 ${statements.trial.is_balanced ? 'text-green-600' : 'text-red-600'}`}>
+              {statements.trial.is_balanced ? '✓ متوازن' : '✗ غير متوازن'}
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-gray-500 text-xs border-b border-gray-100">
+                  <th className="px-4 py-2 text-right font-medium">رمز</th>
+                  <th className="px-4 py-2 text-right font-medium">الحساب</th>
+                  <th className="px-4 py-2 text-right font-medium">النوع</th>
+                  <th className="px-4 py-2 text-left font-medium">حركة مدين</th>
+                  <th className="px-4 py-2 text-left font-medium">حركة دائن</th>
+                  <th className="px-4 py-2 text-left font-medium">الرصيد</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {statements.trial.lines.map((line, i) => (
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 font-mono text-xs text-blue-700">{line.code}</td>
+                    <td className="px-4 py-2">{line.name_ar}</td>
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs border ${
+                        line.type === 'asset' ? 'text-blue-700 bg-blue-50 border-blue-200' :
+                        line.type === 'liability' ? 'text-orange-700 bg-orange-50 border-orange-200' :
+                        line.type === 'revenue' ? 'text-green-700 bg-green-50 border-green-200' :
+                        line.type === 'expense' ? 'text-red-700 bg-red-50 border-red-200' :
+                        'text-gray-600 bg-gray-50 border-gray-200'
+                      }`}>
+                        {line.type === 'asset' ? 'أصول' : line.type === 'liability' ? 'خصوم' :
+                         line.type === 'equity' ? 'حقوق ملكية' : line.type === 'revenue' ? 'إيرادات' :
+                         line.type === 'cogs' ? 'تكلفة' : line.type === 'expense' ? 'مصروفات' : line.type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-left font-medium text-blue-700">{formatNumber(line.period_debit)}</td>
+                    <td className="px-4 py-2 text-left font-medium text-red-600">{formatNumber(line.period_credit)}</td>
+                    <td className={`px-4 py-2 text-left font-medium ${line.balance < 0 ? 'text-red-600' : 'text-gray-900'}`}>
+                      {formatNumber(line.balance)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-gray-50 font-bold border-t-2 border-gray-200">
+                  <td colSpan={3} className="px-4 py-3 text-right text-gray-700">الإجمالي</td>
+                  <td className="px-4 py-3 text-left text-blue-700">{formatNumber(statements.trial.total_debit)}</td>
+                  <td className="px-4 py-3 text-left text-red-600">{formatNumber(statements.trial.total_credit)}</td>
+                  <td className="px-4 py-3 text-left"></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Cash Flow */}
+      {activeTab === 'cashflow' && statements.cashflow && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 bg-gradient-to-l from-blue-50 to-white">
+            <h2 className="text-lg font-bold text-gray-900">قائمة التدفقات النقدية</h2>
+            <p className="text-xs text-gray-500">{statements.cashflow.period_from} — {statements.cashflow.period_to}</p>
+          </div>
+          <div className="p-4 space-y-6">
+            <section>
+              <h3 className="text-sm font-bold text-green-700 mb-2">التدفقات التشغيلية</h3>
+              {statements.cashflow.operating.items.map((l, i) => <StatementLineRow key={i} line={l} />)}
+              <div className="flex items-center gap-2 px-3 py-2 mt-2 bg-green-50 rounded-lg border border-green-100">
+                <span className="flex-1 text-sm font-bold text-green-800">صافي التدفقات التشغيلية</span>
+                <span className="text-sm font-bold text-green-700">{formatNumber(statements.cashflow.operating.total)}</span>
+              </div>
+            </section>
+            <section>
+              <h3 className="text-sm font-bold text-blue-700 mb-2">التدفقات الاستثمارية</h3>
+              {statements.cashflow.investing.items.map((l, i) => <StatementLineRow key={i} line={l} />)}
+              <div className="flex items-center gap-2 px-3 py-2 mt-2 bg-blue-50 rounded-lg border border-blue-100">
+                <span className="flex-1 text-sm font-bold text-blue-800">صافي التدفقات الاستثمارية</span>
+                <span className="text-sm font-bold text-blue-700">{formatNumber(statements.cashflow.investing.total)}</span>
+              </div>
+            </section>
+            <section>
+              <h3 className="text-sm font-bold text-purple-700 mb-2">التدفقات التمويلية</h3>
+              {statements.cashflow.financing.items.map((l, i) => <StatementLineRow key={i} line={l} />)}
+              <div className="flex items-center gap-2 px-3 py-2 mt-2 bg-purple-50 rounded-lg border border-purple-100">
+                <span className="flex-1 text-sm font-bold text-purple-800">صافي التدفقات التمويلية</span>
+                <span className="text-sm font-bold text-purple-700">{formatNumber(statements.cashflow.financing.total)}</span>
+              </div>
+            </section>
+            <div className="border-t border-gray-200 pt-4 space-y-2">
+              <div className="flex items-center gap-2 px-4 py-2">
+                <span className="flex-1 text-sm text-gray-600">الرصيد الافتتاحي</span>
+                <span className="text-sm font-medium">{formatNumber(statements.cashflow.opening_cash)}</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2">
+                <span className="flex-1 text-sm text-gray-600">صافي التغير</span>
+                <span className={`text-sm font-medium ${statements.cashflow.net_change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatNumber(statements.cashflow.net_change)}
+                </span>
+              </div>
+              <div className={`flex items-center gap-2 px-4 py-4 rounded-lg border-2 ${
+                statements.cashflow.closing_cash >= 0 ? 'bg-green-50 border-green-300' : 'bg-red-50 border-red-300'
+              }`}>
+                <span className="flex-1 text-lg font-bold text-gray-900">الرصيد الختامي</span>
+                <span className="text-lg font-bold">{formatNumber(statements.cashflow.closing_cash)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function EmptyState() {
+function ChevronLeft({ className }: { className?: string }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-12 text-center text-gray-400">
-      <TrendingUp className="h-10 w-10 mx-auto mb-3 text-gray-300" />
-      <p className="text-sm">لا توجد بيانات كافية لإنشاء هذه القائمة</p>
-      <p className="text-xs mt-1">تأكد من وجود قيود مرحّلة في الفترة المحددة</p>
-    </div>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
   )
 }

@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/audit'
 const BUCKET = 'logos'
 
 export async function POST(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   try {
     const formData = await req.formData()
     const file = formData.get('logo') as File

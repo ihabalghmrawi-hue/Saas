@@ -4,7 +4,7 @@ import type { RentalReportData, ReportInsight } from '@/lib/report-engine'
 import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const days = parseInt(req.nextUrl.searchParams.get('days') || '30')
   const supabase = createClient()
 

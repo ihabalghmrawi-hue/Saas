@@ -6,7 +6,7 @@ import type { BackupTable } from '@/lib/backup-engine'
 import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const table = req.nextUrl.searchParams.get('table') as BackupTable | null
 
   if (!table || !BACKUP_TABLES.includes(table as any)) {

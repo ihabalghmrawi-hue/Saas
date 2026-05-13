@@ -11,8 +11,8 @@ export default async function TrialBalancePage({
   searchParams: { date_to?: string; date_from?: string }
 }) {
   const supabase   = createClient()
-  const company_id = getCompanyId()
-  const currency   = getCurrency()
+  const company_id = await getCompanyId()
+  const currency   = await getCurrency()
 
   const date_to   = searchParams.date_to   || new Date().toISOString().slice(0, 10)
   const date_from = searchParams.date_from || undefined

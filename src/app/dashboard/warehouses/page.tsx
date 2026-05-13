@@ -5,7 +5,7 @@ import { WarehousesClient } from './warehouses-client'
 export const dynamic = 'force-dynamic'
 
 export default async function WarehousesPage() {
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const supabase  = createClient()
 
   const [{ data: warehouses }, { data: inventorySummary }] = await Promise.all([

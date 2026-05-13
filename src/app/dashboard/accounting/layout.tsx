@@ -1,18 +1,25 @@
+'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, BookOpen, BookMarked, Scale,
-  List, BarChart3, Calendar,
+  List, BarChart3, Calendar, ArrowLeftRight,
+  GitBranch, Users, Building2, AlertTriangle,
+  Lightbulb, Settings2,
 } from 'lucide-react'
 
 const navItems = [
-  { href: '/dashboard/accounting',               label: 'لوحة التحكم',      icon: LayoutDashboard },
-  { href: '/dashboard/accounting/journal',       label: 'القيود المحاسبية', icon: BookOpen },
-  { href: '/dashboard/accounting/ledger',        label: 'دفتر الأستاذ',     icon: BookMarked },
-  { href: '/dashboard/accounting/trial-balance', label: 'ميزان المراجعة',   icon: Scale },
-  { href: '/dashboard/accounting/coa',           label: 'شجرة الحسابات',    icon: List },
-  { href: '/dashboard/accounting/statements',    label: 'القوائم المالية',   icon: BarChart3 },
-  { href: '/dashboard/accounting/periods',       label: 'الفترات المالية',   icon: Calendar },
+  { href: '/dashboard/accounting',                  label: 'لوحة التحكم',        icon: LayoutDashboard },
+  { href: '/dashboard/accounting/journal',          label: 'القيود المحاسبية',   icon: BookOpen },
+  { href: '/dashboard/accounting/ledger',           label: 'دفتر الأستاذ',        icon: BookMarked },
+  { href: '/dashboard/accounting/trial-balance',    label: 'ميزان المراجعة',      icon: Scale },
+  { href: '/dashboard/accounting/coa',              label: 'شجرة الحسابات',       icon: List },
+  { href: '/dashboard/accounting/statements',       label: 'القوائم المالية',     icon: BarChart3 },
+  { href: '/dashboard/accounting/periods',          label: 'الفترات المالية',     icon: Calendar },
+  { href: '/dashboard/accounting/reconciliation',   label: 'التسويات',            icon: ArrowLeftRight },
+  { href: '/dashboard/accounting/aged',             label: 'التقارير العمرية',    icon: Users },
+  { href: '/dashboard/accounting/posting-rules',    label: 'قواعد الترحيل',       icon: GitBranch },
+  { href: '/dashboard/accounting/anomalies',        label: 'الذكاء المحاسبي',     icon: Lightbulb },
 ]
 
 function AccountingSidebar() {

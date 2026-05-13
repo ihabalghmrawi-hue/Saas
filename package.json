@@ -7,9 +7,25 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,json,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css}\"",
     "type-check": "tsc --noEmit",
+    "type-check:strict": "tsc --noEmit --strict",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui",
+    "validate:migrations": "node scripts/validate-migrations.mjs",
+    "validate:routes": "node scripts/validate-routes.mjs",
+    "validate:env": "node scripts/validate-env.mjs",
+    "validate:console": "node scripts/check-console.mjs",
+    "validate:all": "npm run validate:migrations && npm run validate:routes && npm run validate:env && npm run validate:console",
+    "check:all": "npm run lint && npm run type-check && npm run test && npm run validate:all",
+    "docker:build": "docker build -t financeapp .",
+    "docker:compose": "docker compose -f docker-compose.yml config --quiet",
+    "docker:validate": "npm run docker:build && npm run docker:compose",
+    "prepare": "husky"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.0.4",
@@ -31,7 +47,7 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "lucide-react": "^0.344.0",
-    "next": "14.1.0",
+    "next": "^16.2.6",
     "next-themes": "^0.2.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -43,16 +59,47 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.0.0",
+    "@commitlint/config-conventional": "^19.0.0",
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^14.2.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/coverage-v8": "^1.4.0",
+    "@vitest/ui": "^1.4.0",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^9.0.0",
+    "jsdom": "^24.0.0",
+    "lint-staged": "^15.2.0",
     "postcss": "^8",
+    "prettier": "^3.2.0",
     "tailwindcss": "^3.3.0",
-    "typescript": "^5",
+    "typescript": "^5.9.3",
+    "typescript-language-server": "^5.2.0",
     "vitest": "^1.4.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yaml,yml}": [
+      "prettier --write"
+    ],
+    "*.css": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
   }
 }

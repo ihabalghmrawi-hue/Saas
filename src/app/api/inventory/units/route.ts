@@ -84,7 +84,7 @@ UNIT_SEEDS.dress_rental = UNIT_SEEDS.clothing
 
 export async function GET() {
   const supabase  = createClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const { data, error } = await supabase
     .from('units')
     .select('*')
@@ -96,7 +96,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const body      = await req.json()
 
   if (body.action === 'seed') {
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const { id }    = await req.json()
   if (!id) return NextResponse.json({ error: 'id مطلوب' }, { status: 400 })
   const { error } = await admin.from('units').delete().eq('id', id).eq('company_id', companyId)

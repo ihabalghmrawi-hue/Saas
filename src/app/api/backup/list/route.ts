@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCompanyId } from '@/lib/tenant'
 
 export async function GET() {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
   const { data, error } = await supabase
     .from('backup_snapshots')

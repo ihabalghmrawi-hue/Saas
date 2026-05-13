@@ -5,11 +5,12 @@ import { PinLoginSchema }            from '@/validators/auth'
 import { ok, err, Errors, validationError } from '@/lib/api-response'
 import type { PinLoginResponse }     from '@/validators/auth'
 import { getCompanyId } from '@/lib/tenant'
+import { recordLoginAttempt }        from '@/lib/auth-tracking'
 
 const ADMIN_PIN  = process.env.ADMIN_PIN || '1234'
 
 export async function POST(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   // 1. Parse & validate input
   let body: unknown
   try { body = await req.json() } catch {
@@ -54,7 +55,12 @@ export async function POST(req: NextRequest) {
     .eq('is_active', true)
     .single()
 
-  if (!staff) return err('INVALID_PIN', 'رقم سري خاطئ', 401)
+  if (!staff) {
+    recordLoginAttempt(createClient(), `pin:${parsed.data.pin}`, false, req)
+    return err('INVALID_PIN', 'رقم سري خاطئ', 401)
+  }
+
+  recordLoginAttempt(createClient(), `staff:${staff.name}`, true, req)
 
   // Fetch role separately — try with permissions JSONB column, fall back without
   let role: { name?: string; name_ar?: string; permissions?: string[] } = {}

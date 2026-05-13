@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 
 // ── Sales data fetcher ────────────────────────────────────────────────────────
 async function fetchSalesData(days: number): Promise<SalesReportData> {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
   const since    = new Date(Date.now() - days * 86400000).toISOString()
   const today    = new Date().toISOString().slice(0, 10)
@@ -86,7 +86,7 @@ async function fetchSalesData(days: number): Promise<SalesReportData> {
 // ── Rental data fetcher ───────────────────────────────────────────────────────
 // Queries Supabase directly (avoids HTTP roundtrip that loses x-tenant-id header)
 async function fetchRentalData(days: number): Promise<RentalReportData> {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase   = createClient()
   const today      = new Date().toISOString().slice(0, 10)
   const since      = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
@@ -184,8 +184,8 @@ async function fetchRentalData(days: number): Promise<RentalReportData> {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default async function ReportsPage() {
-  const CURRENCY    = getCurrency()
-  const h           = headers()
+  const CURRENCY    = await getCurrency()
+  const h           = await headers()
   const features    = getFeatures(h.get('x-business-type') || 'retail')
   const defaultMode = getDefaultReportMode(features.businessType)
   const modes       = getAvailableModes(features.businessType)

@@ -3,7 +3,7 @@ import { ConstructionReportsClient } from './reports-client'
 
 export const dynamic = 'force-dynamic'
 
-export default function ConstructionReportsPage() {
-  const currency = getCurrency()
+export default async function ConstructionReportsPage() {
+  const currency = await getCurrency()
   return <ConstructionReportsClient currency={currency} />
 }

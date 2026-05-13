@@ -69,6 +69,24 @@ export {
   postPayrollJournal,
 } from './auto-post'
 
+// ── Enterprise Modules ──────────────────────────────────────
+export * from './enterprise-types'
+export {
+  PostingRulesEngine,
+  allocateToCostCenters,
+  allocateToBranches,
+} from './posting-rules'
+export {
+  ReconciliationEngine,
+  getAgedReceivables,
+  getAgedPayables,
+  getCustomerBalances,
+  getSupplierBalances,
+} from './reconciliation'
+export { RecurringJournalEngine } from './recurring'
+export { AIAccountingEngine } from './ai-accounting'
+export { AccountingEventBus, processRecurringJournals, suggestReconciliations, runIntegrityChecks } from './event-bus'
+
 // ── Backward Compatibility Aliases ────────────────────────────
 export { postSaleJournal     as postSaleEntry     } from './auto-post'
 export { postPurchaseJournal as postPurchaseEntry } from './auto-post'

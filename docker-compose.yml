@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   app:
     build:
@@ -29,12 +27,26 @@ services:
 
     restart: unless-stopped
 
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
+  admin:
+    build:
+      context: ../financeapp-admin
+      dockerfile: Dockerfile
+
+    container_name: finance-saas-admin
+
+    ports:
+      - "3001:3001"
+
+    env_file:
+      - ../financeapp-admin/.env.local
+
+    environment:
+      NODE_ENV: production
+
+    networks:
+      - finance-network
+
+    restart: unless-stopped
 
   redis:
     image: redis:alpine

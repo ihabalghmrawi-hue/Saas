@@ -1,33 +1,59 @@
-name: ERP CI Pipeline
+# ─────────────────────────────────────────────────────────────
+# CI Pipeline — Quality gates for every push and PR
+# Runs in parallel for speed, blocks merge on failure
+# ─────────────────────────────────────────────────────────────
+
+name: CI
 
 on:
   push:
-    branches:
-      - main
-
+    branches: [main]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  quality:
+    name: Quality Gate
+    uses: ./.github/workflows/reusable.yml
+    with:
+      node-version: '20'
+      run-lint: true
+      run-type-check: true
+      run-tests: true
+      run-validation: true
+      run-build: true
+    secrets:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+  docker:
+    name: Docker Build
+    needs: quality
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - name: Docker build test
+        run: docker build -t financeapp:ci --target builder .
+      - name: Docker compose validation
+        run: docker compose -f docker-compose.yml config --quiet
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build Next.js app
-        run: npm run build
-
-      - name: Build Docker image
-        run: docker build -t financeapp .
+  status:
+    name: CI Status
+    if: always()
+    needs: [quality, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs
+        run: |
+          if [ "${{ needs.quality.result }}" != "success" ]; then
+            echo "Quality gate failed"
+            exit 1
+          fi
+          if [ "${{ needs.docker.result }}" != "success" ]; then
+            echo "Docker build failed"
+            exit 1
+          fi
+          echo "All CI checks passed"

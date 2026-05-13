@@ -5,7 +5,7 @@ import { getCompanyId } from '@/lib/tenant'
 
 export async function POST(req: NextRequest) {
   try {
-    const COMPANY_ID = getCompanyId()
+    const COMPANY_ID = await getCompanyId()
     const body = await req.json()
     const { sale_id, items, refund_method, reason, notes, warehouse_id } = body
 
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const COMPANY_ID = getCompanyId()
+    const COMPANY_ID = await getCompanyId()
     const supabase = createClient()
     const { data } = await supabase
       .from('returns')

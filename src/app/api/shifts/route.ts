@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCompanyId } from '@/lib/tenant'
 
 export async function GET() {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
   const { data } = await supabase
     .from('shifts')
@@ -17,7 +17,7 @@ export async function GET() {
 // Open shift
 export async function POST(req: NextRequest) {
   try {
-    const COMPANY_ID = getCompanyId()
+    const COMPANY_ID = await getCompanyId()
     const { cashier_name, opening_cash } = await req.json()
     if (!cashier_name) return NextResponse.json({ error: 'اسم الكاشير مطلوب' }, { status: 400 })
 
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 // Close shift
 export async function PATCH(req: NextRequest) {
   try {
-    const COMPANY_ID = getCompanyId()
+    const COMPANY_ID = await getCompanyId()
     const { shift_id, closing_cash, notes } = await req.json()
     const supabase = createClient()
 

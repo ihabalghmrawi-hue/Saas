@@ -6,7 +6,7 @@ import { logAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const body      = await req.json()
 
   const { product_id, warehouse_id, type, quantity, notes } = body

@@ -51,7 +51,7 @@ async function upsertRolePermissions(
 // ── GET ───────────────────────────────────────────────────────────────────────
 export async function GET() {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
 
   const { data: staffUsers, error } = await admin
     .from('staff_users')
@@ -77,7 +77,7 @@ export async function GET() {
 // ── POST ──────────────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const body      = await req.json()
   const { name, pin, role_name = 'staff', role_name_ar = 'موظف', permissions = [] } = body
 
@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
 // ── PATCH ─────────────────────────────────────────────────────────────────────
 export async function PATCH(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const body      = await req.json()
   const { id, name, pin, permissions, role_name_ar } = body
 
@@ -207,7 +207,7 @@ export async function PATCH(req: NextRequest) {
 // ── DELETE ────────────────────────────────────────────────────────────────────
 export async function DELETE(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const { id }    = await req.json()
 
   if (!id) return NextResponse.json({ error: 'id مطلوب' }, { status: 400 })

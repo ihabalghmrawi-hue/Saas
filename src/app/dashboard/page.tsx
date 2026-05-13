@@ -16,10 +16,10 @@ import { getCompanyId, getCurrency } from '@/lib/tenant'
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const COMPANY_ID = getCompanyId()
-  const CURRENCY   = getCurrency()
+  const COMPANY_ID = await getCompanyId()
+  const CURRENCY   = await getCurrency()
   const supabase   = createClient()
-  const h          = headers()
+  const h          = await headers()
   const dec = (v: string | null, fb = '') => { try { return decodeURIComponent(v || fb) } catch { return v || fb } }
   const features  = getFeatures(dec(h.get('x-business-type'), 'retail'))
   const staffName = dec(h.get('x-staff-name'), 'المدير')

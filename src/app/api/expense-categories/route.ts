@@ -15,7 +15,7 @@ const DEFAULT_CATEGORIES = [
 ]
 
 export async function GET() {
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const supabase  = createClient()
   const { data, error } = await supabase
     .from('expense_categories')
@@ -28,7 +28,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const admin     = createAdminClient()
   const body      = await req.json()
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const admin     = createAdminClient()
   const { id }    = await req.json()
 

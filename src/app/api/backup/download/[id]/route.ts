@@ -5,23 +5,45 @@ import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> }
 ) {
-  const COMPANY_ID = getCompanyId()
+  const { id } = await context.params
+
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
 
   const { data: snap } = await supabase
     .from('backup_snapshots')
     .select('storage_path, label, format, status')
-    .eq('id', params.id)
+    .eq('id', id)
     .eq('company_id', COMPANY_ID)
     .single()
 
-  if (!snap) return NextResponse.json({ error: 'النسخة غير موجودة' }, { status: 404 })
-  if (snap.status !== 'ready') return NextResponse.json({ error: 'النسخة غير جاهزة' }, { status: 400 })
+  if (!snap) {
+    return NextResponse.json(
+      { error: 'النسخة غير موجودة' },
+      { status: 404 }
+    )
+  }
 
-  const url = await getSignedUrl(snap.storage_path, 300) // 5-minute link
-  if (!url) return NextResponse.json({ error: 'فشل إنشاء رابط التحميل' }, { status: 500 })
+  if (snap.status !== 'ready') {
+    return NextResponse.json(
+      { error: 'النسخة غير جاهزة' },
+      { status: 400 }
+    )
+  }
 
-  return NextResponse.json({ url, filename: `${snap.label}.${snap.format}` })
+  const url = await getSignedUrl(snap.storage_path, 300)
+
+  if (!url) {
+    return NextResponse.json(
+      { error: 'فشل إنشاء رابط التحميل' },
+      { status: 500 }
+    )
+  }
+
+  return NextResponse.json({
+    url,
+    filename: `${snap.label}.${snap.format}`,
+  })
 }

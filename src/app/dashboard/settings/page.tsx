@@ -7,8 +7,8 @@ import { createClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 export default async function SettingsPage() {
-  const COMPANY_ID   = getCompanyId()
-  const h            = headers()
+  const COMPANY_ID   = await getCompanyId()
+  const h            = await headers()
   const dec          = (v: string | null, fb = '') => { try { return decodeURIComponent(v || fb) } catch { return v || fb } }
   const businessType = dec(h.get('x-business-type'), 'retail')
   const staffRole    = dec(h.get('x-staff-role'),    'owner')

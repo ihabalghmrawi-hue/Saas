@@ -4,7 +4,7 @@ import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const days      = Number(req.nextUrl.searchParams.get('days') || '30')
   const since     = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10)
 

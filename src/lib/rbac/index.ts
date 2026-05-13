@@ -1,13 +1,3 @@
-/**
- * RBAC — Role Based Access Control
- *
- * Permission format: "resource:action"
- * Examples: "sales:create", "accounting:post", "reports:view"
- *
- * Owners always have all permissions (*).
- * Other roles resolve via role_permissions → permissions join.
- */
-
 import { SupabaseClient } from '@supabase/supabase-js'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -26,66 +16,144 @@ export interface ResolvedUser {
   userId:      string
   companyId:   string
   role:        string
-  permissions: string[]   // ['*'] for owner, list of 'resource:action' for others
+  permissions: string[]
   isOwner:     boolean
 }
 
-// ── Load permissions for a role ───────────────────────────────────────────────
+// ── Permission groups for UI organisation ─────────────────────────────────────
 
-export async function loadRolePermissions(
-  supabase: SupabaseClient,
-  roleId:   string,
-): Promise<string[]> {
-  const { data } = await supabase
-    .from('role_permissions')
-    .select('permissions(resource, action)')
-    .eq('role_id', roleId)
-
-  return (data ?? []).map((rp: any) => `${rp.permissions.resource}:${rp.permissions.action}`)
+export interface PermissionGroup {
+  key:         string
+  label:       string
+  labelAr:     string
+  permissions: Array<{ resource: Resource; action: Action; label: string; labelAr: string }>
 }
 
-// ── Check if a user (by resolved permissions list) can perform an action ──────
+export const PERMISSION_GROUPS: PermissionGroup[] = [
+  {
+    key: 'sales', label: 'Sales', labelAr: 'المبيعات',
+    permissions: [
+      { resource: 'sales', action: 'create', label: 'Create Sales', labelAr: 'إنشاء فاتورة بيع' },
+      { resource: 'sales', action: 'read',   label: 'View Sales',   labelAr: 'عرض المبيعات' },
+      { resource: 'sales', action: 'update', label: 'Edit Sales',   labelAr: 'تعديل المبيعات' },
+      { resource: 'sales', action: 'delete', label: 'Delete Sales', labelAr: 'حذف المبيعات' },
+    ],
+  },
+  {
+    key: 'purchases', label: 'Purchases', labelAr: 'المشتريات',
+    permissions: [
+      { resource: 'purchases', action: 'create', label: 'Create Purchases', labelAr: 'إنشاء فاتورة شراء' },
+      { resource: 'purchases', action: 'read',   label: 'View Purchases',   labelAr: 'عرض المشتريات' },
+      { resource: 'purchases', action: 'update', label: 'Edit Purchases',   labelAr: 'تعديل المشتريات' },
+      { resource: 'purchases', action: 'delete', label: 'Delete Purchases', labelAr: 'حذف المشتريات' },
+    ],
+  },
+  {
+    key: 'inventory', label: 'Inventory', labelAr: 'المخزون',
+    permissions: [
+      { resource: 'inventory', action: 'read',   label: 'View Inventory',   labelAr: 'عرض المخزون' },
+      { resource: 'inventory', action: 'adjust', label: 'Adjust Inventory', labelAr: 'تعديل المخزون' },
+      { resource: 'products',  action: 'create', label: 'Create Products',  labelAr: 'إضافة منتج' },
+      { resource: 'products',  action: 'read',   label: 'View Products',    labelAr: 'عرض المنتجات' },
+      { resource: 'products',  action: 'update', label: 'Edit Products',    labelAr: 'تعديل منتج' },
+      { resource: 'products',  action: 'delete', label: 'Delete Products',  labelAr: 'حذف منتج' },
+    ],
+  },
+  {
+    key: 'expenses', label: 'Expenses', labelAr: 'المصاريف',
+    permissions: [
+      { resource: 'expenses', action: 'create', label: 'Add Expense', labelAr: 'إضافة مصروف' },
+      { resource: 'expenses', action: 'read',   label: 'View Expenses', labelAr: 'عرض المصروفات' },
+      { resource: 'expenses', action: 'delete', label: 'Delete Expense', labelAr: 'حذف مصروف' },
+    ],
+  },
+  {
+    key: 'accounting', label: 'Accounting', labelAr: 'المحاسبة',
+    permissions: [
+      { resource: 'accounting', action: 'read', label: 'View Entries', labelAr: 'عرض القيود المحاسبية' },
+      { resource: 'accounting', action: 'post', label: 'Post Entries', labelAr: 'ترحيل قيود محاسبية' },
+      { resource: 'treasury',   action: 'read',   label: 'View Treasury',   labelAr: 'عرض الخزينة' },
+      { resource: 'treasury',   action: 'transfer', label: 'Transfer',    labelAr: 'تحويل بين حسابات الخزينة' },
+    ],
+  },
+  {
+    key: 'reports', label: 'Reports', labelAr: 'التقارير',
+    permissions: [
+      { resource: 'reports', action: 'view',   label: 'View Reports',   labelAr: 'عرض التقارير' },
+      { resource: 'reports', action: 'export', label: 'Export Reports', labelAr: 'تصدير التقارير' },
+    ],
+  },
+  {
+    key: 'customers', label: 'Customers', labelAr: 'العملاء',
+    permissions: [
+      { resource: 'customers', action: 'create', label: 'Add Customer', labelAr: 'إضافة عميل' },
+      { resource: 'customers', action: 'read',   label: 'View Customers', labelAr: 'عرض العملاء' },
+      { resource: 'customers', action: 'update', label: 'Edit Customer', labelAr: 'تعديل عميل' },
+      { resource: 'customers', action: 'delete', label: 'Delete Customer', labelAr: 'حذف عميل' },
+    ],
+  },
+  {
+    key: 'suppliers', label: 'Suppliers', labelAr: 'الموردين',
+    permissions: [
+      { resource: 'suppliers', action: 'create', label: 'Add Supplier', labelAr: 'إضافة مورد' },
+      { resource: 'suppliers', action: 'read',   label: 'View Suppliers', labelAr: 'عرض الموردين' },
+    ],
+  },
+  {
+    key: 'users', label: 'Users & Settings', labelAr: 'المستخدمين والإعدادات',
+    permissions: [
+      { resource: 'users',    action: 'manage', label: 'Manage Users',    labelAr: 'إدارة المستخدمين' },
+      { resource: 'settings', action: 'manage', label: 'Manage Settings', labelAr: 'إدارة الإعدادات' },
+    ],
+  },
+  {
+    key: 'construction', label: 'Construction', labelAr: 'مشاريع البناء',
+    permissions: [
+      { resource: 'construction', action: 'read',  label: 'View Projects',  labelAr: 'عرض مشاريع البناء' },
+      { resource: 'construction', action: 'write', label: 'Manage Projects', labelAr: 'إدارة مشاريع البناء' },
+    ],
+  },
+  {
+    key: 'rentals', label: 'Rentals', labelAr: 'الإيجارات',
+    permissions: [
+      { resource: 'rentals', action: 'read',  label: 'View Rentals',  labelAr: 'عرض الإيجارات' },
+      { resource: 'rentals', action: 'write', label: 'Manage Rentals', labelAr: 'إدارة الإيجارات' },
+    ],
+  },
+]
 
-export function hasPermission(
-  permissions: string[],
-  resource:    Resource,
-  action:      Action,
-): boolean {
-  if (permissions.includes('*')) return true
-  if (permissions.includes(`${resource}:${action}`)) return true
-  return false
+export function getAllPermissions(): Array<{ resource: Resource; action: Action }> {
+  return PERMISSION_GROUPS.flatMap(g => g.permissions.map(p => ({ resource: p.resource, action: p.action })))
 }
 
-// ── Check multiple permissions at once ────────────────────────────────────────
+// ── Role presets ───────────────────────────────────────────────────────────────
 
-export function hasAnyPermission(
-  permissions: string[],
-  checks:      Array<[Resource, Action]>,
-): boolean {
-  return checks.some(([r, a]) => hasPermission(permissions, r, a))
+export interface RolePreset {
+  key:         string
+  label:       string
+  labelAr:     string
+  description: string
+  descriptionAr: string
+  isSystem:    boolean
 }
 
-export function hasAllPermissions(
-  permissions: string[],
-  checks:      Array<[Resource, Action]>,
-): boolean {
-  return checks.every(([r, a]) => hasPermission(permissions, r, a))
+export const ROLE_PRESETS: RolePreset[] = [
+  { key: 'admin',      label: 'Admin',       labelAr: 'مدير',       description: 'Full system access',              descriptionAr: 'صلاحية كاملة على النظام',          isSystem: true },
+  { key: 'manager',    label: 'Manager',     labelAr: 'مشرف',       description: 'Manage daily operations',        descriptionAr: 'إدارة العمليات اليومية',           isSystem: true },
+  { key: 'accountant', label: 'Accountant',  labelAr: 'محاسب',      description: 'Financial and accounting access', descriptionAr: 'صلاحيات مالية ومحاسبية',           isSystem: true },
+  { key: 'cashier',    label: 'Cashier',     labelAr: 'كاشير',       description: 'POS and basic sales',              descriptionAr: 'نقطة بيع ومبيعات أساسية',          isSystem: true },
+  { key: 'employee',   label: 'Employee',    labelAr: 'موظف',       description: 'View-only read access',            descriptionAr: 'صلاحية عرض فقط',                   isSystem: true },
+]
+
+export const ROLE_LABELS_AR: Record<string, string> = {
+  admin:      'مدير',
+  manager:    'مشرف',
+  accountant: 'محاسب',
+  cashier:    'كاشير',
+  employee:   'موظف',
 }
 
-// ── Build permission list from request headers (set by middleware) ─────────────
-
-export function parsePermissionsHeader(header: string | null): string[] {
-  if (!header) return []
-  try {
-    const decoded = decodeURIComponent(header)
-    if (decoded === '*') return ['*']
-    return decoded.split(',').map(p => p.trim()).filter(Boolean)
-  } catch {
-    return []
-  }
-}
-
-// ── Default role permission sets (used when creating a new company) ───────────
+// ── Default role permission sets ───────────────────────────────────────────────
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   admin: [
@@ -141,13 +209,76 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, Permission[]> = {
   ],
 }
 
-// ── Seed default roles for a new company ─────────────────────────────────────
+// ── Super admin check ──────────────────────────────────────────────────────────
+
+const SUPER_ADMIN_EMAILS = (process.env.SUPER_ADMIN_EMAILS || '')
+  .split(',')
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean)
+
+export function isSuperAdmin(email: string | null | undefined): boolean {
+  if (!email) return false
+  return SUPER_ADMIN_EMAILS.includes(email.toLowerCase())
+}
+
+// ── Load permissions for a role ────────────────────────────────────────────────
+
+export async function loadRolePermissions(
+  supabase: SupabaseClient,
+  roleId:   string,
+): Promise<string[]> {
+  const { data } = await supabase
+    .from('role_permissions')
+    .select('permissions(resource, action)')
+    .eq('role_id', roleId)
+
+  return (data ?? []).map((rp: any) => `${rp.permissions.resource}:${rp.permissions.action}`)
+}
+
+// ── Permission checks ──────────────────────────────────────────────────────────
+
+export function hasPermission(
+  permissions: string[],
+  resource:    Resource,
+  action:      Action,
+): boolean {
+  if (permissions.includes('*')) return true
+  return permissions.includes(`${resource}:${action}`)
+}
+
+export function hasAnyPermission(
+  permissions: string[],
+  checks:      Array<[Resource, Action]>,
+): boolean {
+  return checks.some(([r, a]) => hasPermission(permissions, r, a))
+}
+
+export function hasAllPermissions(
+  permissions: string[],
+  checks:      Array<[Resource, Action]>,
+): boolean {
+  return checks.every(([r, a]) => hasPermission(permissions, r, a))
+}
+
+// ── Parse permissions header ───────────────────────────────────────────────────
+
+export function parsePermissionsHeader(header: string | null): string[] {
+  if (!header) return []
+  try {
+    const decoded = decodeURIComponent(header)
+    if (decoded === '*') return ['*']
+    return decoded.split(',').map(p => p.trim()).filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
+// ── Seed default roles for a new company ──────────────────────────────────────
 
 export async function seedDefaultRoles(
   supabase:  SupabaseClient,
   companyId: string,
 ): Promise<void> {
-  // Get all permissions from DB
   const { data: allPerms } = await supabase
     .from('permissions')
     .select('id, resource, action')
@@ -157,7 +288,6 @@ export async function seedDefaultRoles(
   )
 
   for (const [roleName, perms] of Object.entries(DEFAULT_ROLE_PERMISSIONS)) {
-    // Create role
     const { data: role } = await supabase
       .from('roles')
       .insert({
@@ -171,7 +301,6 @@ export async function seedDefaultRoles(
 
     if (!role) continue
 
-    // Assign permissions
     const rolePerms = perms
       .map(p => permMap.get(p))
       .filter(Boolean)
@@ -181,12 +310,4 @@ export async function seedDefaultRoles(
       await supabase.from('role_permissions').insert(rolePerms)
     }
   }
-}
-
-const ROLE_LABELS_AR: Record<string, string> = {
-  admin:      'مدير',
-  manager:    'مشرف',
-  accountant: 'محاسب',
-  cashier:    'كاشير',
-  employee:   'موظف',
 }

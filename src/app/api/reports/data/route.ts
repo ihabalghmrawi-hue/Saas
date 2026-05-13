@@ -4,7 +4,7 @@ import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
   const days = parseInt(req.nextUrl.searchParams.get('days') || '30')
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
 

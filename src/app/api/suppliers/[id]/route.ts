@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getCompanyId } from '@/lib/tenant'
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id }     = await params
     const body       = await req.json()
-    const COMPANY_ID = getCompanyId()
+    const COMPANY_ID = await getCompanyId()
     const supabase   = createClient()
 
     const allowed: Record<string, unknown> = {}
@@ -18,7 +19,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     const { data: supplier, error } = await supabase.from('suppliers')
       .update({ ...allowed, updated_at: new Date().toISOString() })
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('company_id', COMPANY_ID)
       .select().single()
 
@@ -29,12 +30,13 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const COMPANY_ID = getCompanyId()
+    const { id }     = await params
+    const COMPANY_ID = await getCompanyId()
     const supabase   = createClient()
     await supabase.from('suppliers').update({ is_active: false })
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('company_id', COMPANY_ID)
     return NextResponse.json({ success: true })
   } catch (e: any) {

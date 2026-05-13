@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
   const status = req.nextUrl.searchParams.get('status')
   let q = supabase.from('rental_orders')
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const body = await req.json()
   const supabase = createClient()
 

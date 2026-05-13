@@ -1,0 +1,136 @@
+# ─────────────────────────────────────────────────────────────
+# Reusable Workflows — called by CI, Deploy, and other pipelines
+# ─────────────────────────────────────────────────────────────
+
+name: Reusable Workflows
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: Node.js version
+        default: '20'
+        required: false
+        type: string
+      run-lint:
+        description: Run lint checks
+        default: true
+        required: false
+        type: boolean
+      run-type-check:
+        description: Run TypeScript checks
+        default: true
+        required: false
+        type: boolean
+      run-tests:
+        description: Run unit tests
+        default: true
+        required: false
+        type: boolean
+      run-validation:
+        description: Run validation scripts
+        default: true
+        required: false
+        type: boolean
+      run-build:
+        description: Run Next.js build
+        default: true
+        required: false
+        type: boolean
+    secrets:
+      SUPABASE_ACCESS_TOKEN:
+        description: Supabase Management API token for migration validation
+        required: false
+
+jobs:
+  lint:
+    name: Lint
+    if: inputs.run-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+      - run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: Prettier check
+        run: npx prettier --check "src/**/*.{ts,tsx,json,css}" --ignore-unknown
+
+  type-check:
+    name: TypeScript
+    if: inputs.run-type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+      - run: npm ci
+      - name: TypeScript strict check
+        run: npm run type-check
+
+  test:
+    name: Tests
+    if: inputs.run-tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+      - run: npm ci
+      - name: Unit tests with coverage
+        run: npm run test -- --coverage
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+  validate:
+    name: Validation
+    if: inputs.run-validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+      - run: npm ci
+      - name: Migration consistency
+        run: node scripts/validate-migrations.mjs
+      - name: Route handler validation
+        run: node scripts/validate-routes.mjs
+      - name: Environment validation
+        run: node scripts/validate-env.mjs
+      - name: Forbidden console.log check
+        run: node scripts/check-console.mjs
+
+  build:
+    name: Build
+    if: inputs.run-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+      - run: npm ci
+      - name: Next.js build
+        run: npm run build
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: next-build
+          path: .next/
+          retention-days: 7

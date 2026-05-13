@@ -5,7 +5,7 @@ import { getGeneralLedger, getAccountLedger } from '@/lib/accounting/index'
 
 export async function GET(req: NextRequest) {
   const supabase   = createClient()
-  const company_id = req.headers.get('x-tenant-id') || getCompanyId()
+  const company_id = req.headers.get('x-tenant-id') || await getCompanyId()
   const { searchParams } = req.nextUrl
 
   const account_id = searchParams.get('account_id') || undefined

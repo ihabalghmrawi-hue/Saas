@@ -4,7 +4,7 @@ import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const status    = req.nextUrl.searchParams.get('status')
 
   let q = admin.from('con_projects')
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const admin     = createAdminClient()
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const body      = await req.json()
 
   const { data, error } = await admin.from('con_projects').insert({

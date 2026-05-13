@@ -188,7 +188,7 @@ const TEMPLATES: Record<BusinessType, { categories: Category[]; products: Produc
 // ── POST handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   try {
     const { business_type, reset = false } = await req.json()
 

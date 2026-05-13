@@ -7,8 +7,8 @@ import { getCompanyId } from '@/lib/tenant'
 export const dynamic = 'force-dynamic'
 
 export default async function AuditPage() {
-  const COMPANY_ID = getCompanyId()
-  const h = headers()
+  const COMPANY_ID = await getCompanyId()
+  const h = await headers()
   const dec  = (v: string | null, fb = '') => { try { return decodeURIComponent(v || fb) } catch { return v || fb } }
   const role = dec(h.get('x-staff-role'))
   const perms = dec(h.get('x-staff-permissions')).split(',').filter(Boolean)

@@ -7,7 +7,7 @@ import { ensureCOA, buildAccountTree } from '@/lib/accounting/index'
 // ── GET: full chart of accounts (as tree) ────────────────────
 export async function GET(req: NextRequest) {
   const supabase   = createClient()
-  const company_id = req.headers.get('x-tenant-id') || getCompanyId()
+  const company_id = req.headers.get('x-tenant-id') || await getCompanyId()
   const flat       = req.nextUrl.searchParams.get('flat') === 'true'
 
   try {
@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 // ── POST: create custom account ───────────────────────────────
 export async function POST(req: NextRequest) {
   const supabase   = createAdminClient()
-  const company_id = req.headers.get('x-tenant-id') || getCompanyId()
+  const company_id = req.headers.get('x-tenant-id') || await getCompanyId()
 
   try {
     const body = await req.json()
@@ -141,7 +141,7 @@ export async function POST(req: NextRequest) {
 // ── PATCH: update account ─────────────────────────────────────
 export async function PATCH(req: NextRequest) {
   const supabase   = createAdminClient()
-  const company_id = req.headers.get('x-tenant-id') || getCompanyId()
+  const company_id = req.headers.get('x-tenant-id') || await getCompanyId()
 
   try {
     const body = await req.json()

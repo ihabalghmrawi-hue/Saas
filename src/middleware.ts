@@ -6,6 +6,7 @@ import { BUSINESS_TYPE_COOKIE }            from '@/lib/features'
 import { isSuperAdmin, loadRolePermissions } from '@/lib/rbac'
 import { computeLifecycle }                from '@/lib/subscription'
 import { checkRateLimit, getClientIp, rateLimitHeaders, RATE_LIMITS } from '@/lib/rate-limit'
+import { trackSessionInMiddleware }        from '@/lib/auth-tracking'
 
 const PUBLIC_PATHS = [
   '/auth',
@@ -73,9 +74,8 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   if (user) {
-    // Require an explicit login this browser session — the session cookie has no
-    // maxAge so it disappears when the browser closes. If it's missing the user
-    // must log in again even though the Supabase JWT is still technically valid.
+    trackSessionInMiddleware(request, cookiesToSet, user.id, supabase)
+
     const hasSessionMarker = !!request.cookies.get(APP_SESSION_COOKIE)?.value
     if (!hasSessionMarker && isDashboard) {
       const url = new URL('/auth/login', request.url)

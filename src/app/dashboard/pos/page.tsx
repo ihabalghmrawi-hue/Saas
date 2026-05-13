@@ -5,7 +5,7 @@ import { getCompanyId, getCurrency } from '@/lib/tenant'
 export const dynamic = 'force-dynamic'
 
 export default async function POSPage() {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase   = createClient()
 
   const [
@@ -56,7 +56,7 @@ export default async function POSPage() {
       warehouses={warehouses || []}
       defaultWarehouseId={defaultWarehouse?.id || null}
       companyId={COMPANY_ID}
-      currency={getCurrency()}
+      currency={await getCurrency()}
       company={company || null}
     />
   )

@@ -11,7 +11,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Errors }                    from '@/lib/api-response'
-import type { Permission }           from '@/lib/rbac'
 
 // ── AuthContext ───────────────────────────────────────────────────────────────
 
@@ -55,7 +54,7 @@ function extractContext(req: NextRequest): AuthContext | null {
   }
 }
 
-function hasPermission(permissions: string[], perm: Permission): boolean {
+function hasPermission(permissions: string[], perm: string): boolean {
   if (permissions.includes('*')) return true
   return permissions.includes(perm)
 }
@@ -99,7 +98,7 @@ export function requireCompany(req: NextRequest): AuthContext | NextResponse {
  * Require authenticated user with a specific permission.
  * Returns AuthContext on success, NextResponse(401/403) on failure.
  */
-export function requireRole(req: NextRequest, permission: Permission): AuthContext | NextResponse {
+export function requireRole(req: NextRequest, permission: string): AuthContext | NextResponse {
   const ctx = requireCompany(req)
   if (ctx instanceof NextResponse) return ctx
 

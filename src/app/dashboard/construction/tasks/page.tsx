@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function TasksPage() {
   const admin   = createAdminClient()
-  const COMPANY = getCompanyId()
+  const COMPANY = await getCompanyId()
 
   const [{ data: tasks }, { data: projects }, { data: workers }] = await Promise.all([
     admin.from('con_tasks').select('*, con_projects(name)').eq('company_id', COMPANY).order('created_at', { ascending: false }),

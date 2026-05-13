@@ -33,7 +33,7 @@ export const DEFAULT_BRANDING: Branding = {
 
 export async function getBranding(): Promise<Branding> {
   try {
-    const companyId = getCompanyId()
+    const companyId = await getCompanyId()
     const supabase  = createClient()
     const { data } = await supabase
       .from('branding')

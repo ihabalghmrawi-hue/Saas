@@ -38,6 +38,13 @@ export type AuditAction =
   | 'settings.updated' | 'branding.updated'
   // Wallet & Inventory
   | 'wallet.created' | 'wallet.deposit' | 'wallet.withdrawal'
+  // Accounting Enterprise
+  | 'accounting.rule.created' | 'accounting.rule.updated' | 'accounting.rule.deleted'
+  | 'accounting.recurring.created' | 'accounting.recurring.processed'
+  | 'accounting.reconciliation.created' | 'accounting.reconciliation.matched'
+  | 'accounting.event.processed' | 'accounting.integrity.checked'
+  | 'accounting.period.locked' | 'accounting.period.unlocked'
+  | 'accounting.approval.submitted' | 'accounting.approval.approved' | 'accounting.approval.rejected'
   | 'inventory.adjusted' | 'inventory.writeoff'
 
 export type AuditSeverity = 'info' | 'warning' | 'critical'
@@ -76,7 +83,7 @@ const SEVERITY_MAP: Partial<Record<AuditAction, AuditSeverity>> = {
 
 export async function logAudit(params: AuditParams): Promise<void> {
   try {
-    const h         = headers()
+    const h         = await headers()
     // Use the header set by middleware — this is per-tenant, not global
     const companyId = params.companyId || h.get('x-tenant-id') || process.env.NEXT_PUBLIC_COMPANY_ID || 'default'
     const staffId   = h.get('x-staff-id') || null

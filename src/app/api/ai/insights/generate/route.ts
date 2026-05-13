@@ -61,7 +61,7 @@ ${ruleInsights.map(i => `- ${i.title}: ${i.message}`).join('\n')}
 
 export async function POST() {
   try {
-    const COMPANY_ID = getCompanyId()
+    const COMPANY_ID = await getCompanyId()
     const supabase = createClient()
 
     // Compute metrics
@@ -100,7 +100,7 @@ export async function POST() {
 }
 
 export async function GET() {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
   const { data } = await supabase
     .from('ai_insights')

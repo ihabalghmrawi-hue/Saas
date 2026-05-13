@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
   const supabase   = createClient()
   const issues: IntegrityIssue[] = []
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
 
   // ── 1. Wallet balance integrity ────────────────────────────────────────────
   const { data: wallets } = await supabase

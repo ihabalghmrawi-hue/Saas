@@ -5,7 +5,7 @@ import { getCompanyId } from '@/lib/tenant'
 import { logAudit } from '@/lib/audit'
 
 export async function GET() {
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
   const supabase  = createClient()
   const { data, error } = await supabase
     .from('companies')
@@ -17,7 +17,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: NextRequest) {
-  const companyId = getCompanyId()
+  const companyId = await getCompanyId()
 
   let body: Record<string, unknown>
   try { body = await req.json() } catch {

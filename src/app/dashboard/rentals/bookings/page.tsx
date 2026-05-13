@@ -5,8 +5,8 @@ import { getCompanyId, getCurrency } from '@/lib/tenant'
 export const dynamic = 'force-dynamic'
 
 export default async function BookingsPage() {
-  const CURRENCY = getCurrency()
-  const COMPANY_ID = getCompanyId()
+  const CURRENCY = await getCurrency()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
   const [{ data: orders }, { data: dresses }] = await Promise.all([
     supabase.from('rental_orders')

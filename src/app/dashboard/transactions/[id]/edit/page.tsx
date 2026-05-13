@@ -4,8 +4,8 @@ import { notFound } from 'next/navigation'
 import { getCompanyId, getCurrency } from '@/lib/tenant'
 
 export default async function EditTransactionPage({ params }: { params: { id: string } }) {
-  const CURRENCY = getCurrency()
-  const COMPANY_ID = getCompanyId()
+  const CURRENCY = await getCurrency()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
 
   const { data: transaction } = await supabase

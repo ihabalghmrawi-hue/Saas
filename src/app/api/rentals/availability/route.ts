@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const start = req.nextUrl.searchParams.get('start')
   const end = req.nextUrl.searchParams.get('end')
   const excludeId = req.nextUrl.searchParams.get('exclude')

@@ -8,7 +8,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const h         = headers()
+  const h         = await headers()
   const companyId = h.get('x-tenant-id')
   const isSuperAdmin = h.get('x-is-super-admin') === 'true'
 

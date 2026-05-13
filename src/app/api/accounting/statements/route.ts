@@ -10,7 +10,7 @@ import {
 
 export async function GET(req: NextRequest) {
   const supabase   = createClient()
-  const company_id = req.headers.get('x-tenant-id') || getCompanyId()
+  const company_id = req.headers.get('x-tenant-id') || await getCompanyId()
   const { searchParams } = req.nextUrl
 
   const type      = searchParams.get('type') || 'income'

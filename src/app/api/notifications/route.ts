@@ -4,7 +4,7 @@ import { getCompanyId } from '@/lib/tenant'
 
 export async function GET() {
   const supabase   = createClient()
-  const company_id = getCompanyId()
+  const company_id = await getCompanyId()
   const today      = new Date().toISOString().slice(0, 10)
   const sevenDays  = new Date(Date.now() - 7 * 86400_000).toISOString().slice(0, 10)
 

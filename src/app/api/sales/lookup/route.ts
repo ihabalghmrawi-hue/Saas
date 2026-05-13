@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getCompanyId } from '@/lib/tenant'
 
 export async function GET(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const invoice = req.nextUrl.searchParams.get('invoice')
   if (!invoice) return NextResponse.json(null, { status: 400 })
 

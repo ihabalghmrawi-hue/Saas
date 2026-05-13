@@ -5,7 +5,7 @@ import { getCompanyId, getCurrency } from '@/lib/tenant'
 export const dynamic = 'force-dynamic'
 
 export default async function MovementsPage() {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
 
   const [{ data: movements }, { data: products }, { data: warehouses }] = await Promise.all([
@@ -25,7 +25,7 @@ export default async function MovementsPage() {
       products={products || []}
       warehouses={warehouses || []}
       companyId={COMPANY_ID}
-      currency={getCurrency()}
+      currency={await getCurrency()}
     />
   )
 }

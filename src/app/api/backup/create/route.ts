@@ -9,7 +9,7 @@ import { getCompanyId } from '@/lib/tenant'
 const BUSINESS_TYPE = process.env.NEXT_PUBLIC_BUSINESS_TYPE || 'retail'
 
 export async function POST(req: NextRequest) {
-  const COMPANY_ID = getCompanyId()
+  const COMPANY_ID = await getCompanyId()
   const supabase = createClient()
   const body     = await req.json().catch(() => ({}))
   const label    = body.label as string | undefined

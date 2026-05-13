@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import OnboardingClient from './onboarding-client'
 
 export default async function OnboardingPage() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

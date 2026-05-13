@@ -1,0 +1,78 @@
+# ─────────────────────────────────────────────────────────────
+# Docker Pipeline — Container build and compose validation
+# Ensures the Docker setup is always deployable
+# ─────────────────────────────────────────────────────────────
+
+name: Docker
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.dockerignore'
+      - 'package.json'
+      - 'package-lock.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.dockerignore'
+      - 'package.json'
+      - 'package-lock.json'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build dependencies stage
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          target: deps
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build production image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: financeapp:ci
+          cache-from: type=gha
+      - name: Test image
+        run: |
+          docker run --rm financeapp:ci node -e "console.log('Image OK')"
+
+  compose:
+    name: Compose Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate docker-compose.yml
+        run: docker compose -f docker-compose.yml config --quiet
+      - name: Check services
+        run: |
+          docker compose -f docker-compose.yml config --services | while read service; do
+            echo "  Service: $service"
+          done
+
+  lint:
+    name: Dockerfile Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hadolint Dockerfile check
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
