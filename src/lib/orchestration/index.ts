@@ -1,0 +1,278 @@
+export {
+  ResourceKind,
+  ResourceStatus,
+  registerControllerConfig,
+  getControllerConfig,
+  getAllControllerConfigs,
+  applyResource,
+  deleteResource,
+  getResource,
+  listResources,
+  updateObservedState,
+  addCondition,
+  reconcileResource,
+  reconcileAll,
+  getReconciliationHistory,
+  cleanupStaleResources,
+  runReconciliationLoop,
+  getOperatorSummary,
+  configureOperatorStores,
+} from './operator-runtime'
+export type {
+  ResourceRef,
+  DesiredState,
+  ObservedState,
+  ResourceCondition,
+  ResourceObject,
+  ReconciliationResult,
+  ControllerConfig,
+} from './operator-runtime'
+
+export {
+  TopologyNodeStatus,
+  registerClusterNode,
+  getClusterNode,
+  listClusterNodes,
+  updateNodeUtilization,
+  updateNodeStatus,
+  registerWorkerTopology,
+  getWorkerTopology,
+  listWorkerTopologies,
+  updateWorkerLoad,
+  registerQueuePartition,
+  getQueuePartition,
+  listQueuePartitions,
+  updateQueueDepth,
+  registerRegionTopology,
+  getRegionTopology,
+  listRegionTopologies,
+  updateRegionHealthScore,
+  registerSchedulerTopology,
+  getSchedulerTopology,
+  listSchedulerTopologies,
+  placeTenant,
+  getTenantPlacement,
+  listTenantPlacements,
+  rebalanceTenant,
+  takeTopologySnapshot,
+  detectTopologyAnomalies,
+  configureTopologyStores,
+} from './topology-engine'
+export type {
+  ClusterNode,
+  WorkerTopology,
+  QueuePartitionTopology,
+  RegionTopology,
+  SchedulerTopology,
+  TenantPlacement,
+  TopologySnapshot,
+} from './topology-engine'
+
+export {
+  ReplicationRole,
+  registerRegionMetadata,
+  getRegionMetadata,
+  listRegionMetadatas,
+  getActiveRegions,
+  getRegionsByRole,
+  registerReplicationCoordinator,
+  getReplicationCoordinator,
+  listReplicationCoordinators,
+  updateReplicationLag,
+  getReplicationLag,
+  getAllReplicationLags,
+  getCriticalReplicationLags,
+  setRegionRoute,
+  getRegionRoute,
+  getAllRoutesForRegion,
+  getNextEventSequence,
+  detectCircuitBreakers,
+  checkRegionConnectivity,
+  getMultiRegionSummary,
+  configureMCRStores,
+} from './multi-region-coordinator'
+export type {
+  RegionMetadata,
+  ReplicationCoordinator,
+  ReplicationLag,
+  RegionRoute,
+} from './multi-region-coordinator'
+
+export {
+  registerReplicatedStream,
+  getReplicatedStream,
+  listReplicatedStreams,
+  replicateEvent,
+  batchReplicateEvents,
+  getReplicatedEvent,
+  queryReplicatedEvents,
+  requestReplay,
+  getReplayRequest,
+  listReplayRequests,
+  executeReplay,
+  registerSubscriber,
+  unregisterSubscriber,
+  listSubscribers,
+  getReplicationSummary,
+  configureEventReplicatorStores,
+} from './event-replicator'
+export type {
+  ReplicatedEvent,
+  ReplicatedStream,
+  ReplayRequest,
+  ReplicatedEventBatch,
+} from './event-replicator'
+
+export {
+  registerAutoscalePolicy,
+  getAutoscalePolicy,
+  listAutoscalePolicies,
+  recordLoadMetric,
+  getLoadMetrics,
+  getAverageLoad,
+  evaluateAutoscale,
+  evaluateAllAutoscalePolicies,
+  getAutoscaleDecisions,
+  getScalingEvents,
+  completeScalingEvent,
+  getAutoscalerSummary,
+  configureAutoscalerStores,
+} from './autoscaler'
+export type {
+  AutoscalePolicy,
+  AutoscaleDecision,
+  LoadMetric,
+  ScalingEvent,
+  AutoscaleTarget,
+} from './autoscaler'
+
+export {
+  FailoverPhase,
+  FailoverType,
+  createFailoverPlan,
+  executeFailoverPlan,
+  getFailoverPlan,
+  listFailoverPlans,
+  getFailoverHistory,
+  createRecoveryAction,
+  completeRecoveryAction,
+  listRecoveryActions,
+  createCacheRebuildPlan,
+  updateCacheRebuildProgress,
+  getCacheRebuildPlan,
+  listCacheRebuildPlans,
+  getFailoverSummary,
+  configureFailoverStores,
+} from './failover-orchestrator'
+export type {
+  FailoverPlan,
+  FailoverStep,
+  RecoveryAction,
+  CacheRebuildPlan,
+} from './failover-orchestrator'
+
+export type {
+  RuntimePolicy,
+  PolicyRule,
+  TenantQuota,
+  RegionalUsagePolicy,
+  WorkerResourceGovernance,
+  QueueSaturationProtection,
+  OverloadProtection,
+} from './runtime-governance'
+export {
+  registerRuntimePolicy,
+  getRuntimePolicy,
+  listRuntimePolicies,
+  evaluatePolicy,
+  evaluateAllPolicies,
+  setTenantQuota,
+  getTenantQuota,
+  checkTenantQuota,
+  setRegionalUsagePolicy,
+  getRegionalUsagePolicy,
+  isRegionSaturated,
+  setWorkerResourceGovernance,
+  getWorkerResourceGovernance,
+  setQueueSaturationProtection,
+  getQueueSaturationProtection,
+  checkQueueSaturation,
+  registerOverloadProtection,
+  getOverloadProtection,
+  checkOverloadStatus,
+  getGovernanceSummary,
+  configureGovernanceStores,
+} from './runtime-governance'
+
+export type {
+  ClusterHealthAggregate,
+  ReplicationDashboardEntry,
+  FailoverAnalytic,
+  AutoscalingInsight,
+  RuntimeAnomaly,
+} from './operational-insights'
+export {
+  computeClusterHealth,
+  getClusterHealth,
+  getAllClusterHealth,
+  computeReplicationDashboard,
+  getReplicationDashboard,
+  recordFailoverAnalytic,
+  getFailoverAnalytics,
+  computeAutoscalingInsight,
+  getAutoscalingInsight,
+  reportAnomaly,
+  getAnomaly,
+  listAnomalies,
+  resolveAnomaly,
+  getOperationalSummary,
+  configureInsightsStores,
+} from './operational-insights'
+
+export type {
+  BenchmarkCategory,
+  BenchmarkConfig,
+  BenchmarkResult,
+  BenchmarkRun,
+} from './benchmark-suite'
+export {
+  runBenchmark,
+  runBenchmarkSuite,
+  getBenchmarkResults,
+  getBenchmarkRun,
+  listBenchmarkRuns,
+  computeBenchmarkSummary,
+  configureBenchmarkStores,
+} from './benchmark-suite'
+
+export type {
+  ResilienceCategory,
+  ResilienceTest,
+  ResilienceAssertion,
+} from './resilience-validator'
+export {
+  registerResilienceTest,
+  executeResilienceTest,
+  runResilienceSuite,
+  getResilienceTest,
+  listResilienceTests,
+  getValidationHistory,
+  getResilienceSummary,
+  configureResilienceStores,
+} from './resilience-validator'
+
+export type {
+  ChaosFaultType,
+  ChaosExperiment,
+  ChaosResult,
+  ChaosFaultConfig,
+  ChaosSummary,
+} from './chaos-engineering'
+export {
+  createChaosExperiment,
+  getChaosExperiment,
+  listChaosExperiments,
+  runChaosExperiment,
+  getChaosSummary,
+  configureChaosStores,
+} from './chaos-engineering'
