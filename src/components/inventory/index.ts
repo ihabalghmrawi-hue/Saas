@@ -1,0 +1,1 @@
+export { InventoryControlCenter } from './InventoryControlCenter'

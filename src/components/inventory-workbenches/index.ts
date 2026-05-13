@@ -1,0 +1,5 @@
+export { InventoryMovementWorkbench } from './InventoryMovementWorkbench'
+export { WarehouseOperationsConsole } from './WarehouseOperationsConsole'
+export { StockAdjustmentWorkbench } from './StockAdjustmentWorkbench'
+export { ValuationAnalysisWorkbench } from './ValuationAnalysisWorkbench'
+export { TransferOperationsWorkbench } from './TransferOperationsWorkbench'

@@ -1,0 +1,5 @@
+export { PayrollProcessingWorkbench } from './PayrollProcessingWorkbench'
+export { PayrollValidationCenter } from './PayrollValidationCenter'
+export { AttendanceReviewWorkbench } from './AttendanceReviewWorkbench'
+export { WorkforceAllocationConsole } from './WorkforceAllocationConsole'
+export { PayrollAnomalyCenter } from './PayrollAnomalyCenter'

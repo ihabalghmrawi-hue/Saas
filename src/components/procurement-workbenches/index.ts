@@ -1,0 +1,5 @@
+export { ProcurementOpsCenter } from './ProcurementOpsCenter'
+export { SupplierTransactionWorkbench } from './SupplierTransactionWorkbench'
+export { ReceivingWorkbench } from './ReceivingWorkbench'
+export { APMatchingWorkbench } from './APMatchingWorkbench'
+export { ProcurementApprovalWorkbench } from './ProcurementApprovalWorkbench'
