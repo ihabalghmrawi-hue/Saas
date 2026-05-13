@@ -1,5 +1,6 @@
 export { ChartOfAccountsService } from './chart-of-accounts.service'
 export { JournalService } from './journal.service'
+export { JournalEngine } from './journal-engine.service'
 export { PeriodService } from './period.service'
 export { PostingService } from './posting.service'
 export type { AccountingEvent } from './posting.service'
