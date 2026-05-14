@@ -12,6 +12,12 @@ export class PayrollCycleRepository {
     private readonly companyId: string,
   ) {}
 
+  async findById(id: string): Promise<PayrollCycleEntity | null> {
+    const { data, error } = await this.db.from('payroll_cycles').select('*').eq('id', id).eq('company_id', this.companyId).maybeSingle()
+    if (error) throw new RepositoryError(error.message, error.code)
+    return data
+  }
+
   async findOpen(year: number, month: number): Promise<PayrollCycleEntity | null> {
     const { data, error } = await this.db.from('payroll_cycles').select('*').eq('company_id', this.companyId).eq('year', year).eq('month', month).eq('is_closed', false).maybeSingle()
     if (error) throw new RepositoryError(error.message, error.code)

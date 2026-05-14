@@ -74,7 +74,7 @@ export class BaseRepository<T extends { id: string }> {
 
   async create(item: Partial<T>): Promise<{ data: T | null; error?: string }> {
     try {
-      const { data, error } = await this.supabase.from(this.tableName).insert(item).select().single()
+      const { data, error } = await this.supabase.from(this.tableName).insert(item as T).select().single()
       if (error) return { data: null, error: error.message }
       return { data: data as T }
     } catch (e) {
@@ -84,7 +84,7 @@ export class BaseRepository<T extends { id: string }> {
 
   async update(id: string, changes: Partial<T>): Promise<{ data: T | null; error?: string }> {
     try {
-      const { data, error } = await this.supabase.from(this.tableName).update(changes).eq('id', id).select().single()
+      const { data, error } = await this.supabase.from(this.tableName).update(changes as T).eq('id', id).select().single()
       if (error) return { data: null, error: error.message }
       return { data: data as T }
     } catch (e) {

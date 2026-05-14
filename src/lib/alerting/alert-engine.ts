@@ -76,7 +76,7 @@ async function dispatchAlert(alert: Alert): Promise<void> {
     try {
       await handler(alert)
     } catch (error) {
-      logger.error(`Alert handler failed for ${alert.name}`, error instanceof Error ? error : undefined, { alert })
+      logger.error(`Alert handler failed for ${alert.name}`, error instanceof Error ? error : undefined, { data: alert })
     }
   }
 }
@@ -171,7 +171,7 @@ export function getAlertsBySeverity(severity: AlertSeverity): Alert[] {
 export function registerDefaultAlertHandlers(sendNotification: (alert: Alert) => Promise<void>, sendWebhook: (alert: Alert) => Promise<void>): void {
   onAnyAlert(async (alert) => {
     logger.info(`Alert: [${alert.severity}] ${alert.name} - ${alert.message}`, {
-      alert: { name: alert.name, severity: alert.severity, status: alert.status },
+      data: { name: alert.name, severity: alert.severity, status: alert.status },
     })
   })
 

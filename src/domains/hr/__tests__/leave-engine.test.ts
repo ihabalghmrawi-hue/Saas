@@ -84,7 +84,7 @@ describe('LeaveEngine', () => {
     })
 
     it('returns error on insufficient balance', async () => {
-      mockFromResult(db, 'leave_types', annualLeaveType)
+      mockFromResult(db, 'leave_types', { ...annualLeaveType, is_paid: false })
       mockFromResult(db, 'leave_balances', { entitled_days: 21, remaining_days: 5, pending_days: 5 })
       const r = await engine.request(input)
       expect(r.ok).toBe(false)

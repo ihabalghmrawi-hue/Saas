@@ -97,11 +97,8 @@ export async function withRetry<T>(
         const delay = calculateDelay(config, attempt)
         state.nextAttemptAt = Date.now() + delay
 
-        logger.warn(`Retry ${attempt}/${config.maxRetries} for ${operationId} after ${delay}ms`, undefined, {
-          operationId,
-          attempt,
-          error: lastError,
-          delay,
+        logger.warn(`Retry ${attempt}/${config.maxRetries} for ${operationId} after ${delay}ms`, {
+          data: { operationId, attempt, error: lastError, delay },
         })
 
         await new Promise(resolve => setTimeout(resolve, delay))

@@ -88,23 +88,23 @@ export class PayrollEngine {
 
         await this.summaryRepo.upsert({ run_id: runId, employee_id: emp.id, ...summary })
 
-        if (summary.basic_salary > 0) {
+        if ((summary.basic_salary ?? 0) > 0) {
           await lineRepo.createBatch([
-            { run_id: runId, employee_id: emp.id, line_type: 'earning', category: 'salary', name: 'الراتب الأساسي', amount: summary.basic_salary, is_taxable: true, branch_id: emp.branch_id, cost_center_id: null },
-            ...(summary.housing_allowance > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'earning', category: 'allowance', name: 'بدل سكن', amount: summary.housing_allowance, is_taxable: true, branch_id: emp.branch_id } as any] : []),
-            ...(summary.transportation_allowance > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'earning', category: 'allowance', name: 'بدل نقل', amount: summary.transportation_allowance, is_taxable: true, branch_id: emp.branch_id } as any] : []),
-            ...(summary.overtime_amount > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'earning', category: 'overtime', name: 'ساعات إضافية', amount: summary.overtime_amount, is_taxable: true, branch_id: emp.branch_id } as any] : []),
-            ...(summary.bonuses > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'earning', category: 'bonus', name: 'مكافآت', amount: summary.bonuses, is_taxable: true, branch_id: emp.branch_id } as any] : []),
-            ...(summary.loan_deduction > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'deduction', category: 'loan', name: 'قرض', amount: -summary.loan_deduction, is_taxable: false, branch_id: emp.branch_id } as any] : []),
-            ...(summary.tax_deduction > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'deduction', category: 'tax', name: 'ضريبة', amount: -summary.tax_deduction, is_taxable: false, branch_id: emp.branch_id } as any] : []),
-            ...(summary.social_insurance > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'deduction', category: 'insurance', name: 'تأمينات اجتماعية', amount: -summary.social_insurance, is_taxable: false, branch_id: emp.branch_id } as any] : []),
+            { run_id: runId, employee_id: emp.id, line_type: 'earning', category: 'salary', name: 'الراتب الأساسي', amount: summary.basic_salary ?? 0, is_taxable: true, branch_id: emp.branch_id, cost_center_id: null },
+            ...((summary.housing_allowance ?? 0) > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'earning', category: 'allowance', name: 'بدل سكن', amount: summary.housing_allowance ?? 0, is_taxable: true, branch_id: emp.branch_id } as any] : []),
+            ...((summary.transportation_allowance ?? 0) > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'earning', category: 'allowance', name: 'بدل نقل', amount: summary.transportation_allowance ?? 0, is_taxable: true, branch_id: emp.branch_id } as any] : []),
+            ...((summary.overtime_amount ?? 0) > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'earning', category: 'overtime', name: 'ساعات إضافية', amount: summary.overtime_amount ?? 0, is_taxable: true, branch_id: emp.branch_id } as any] : []),
+            ...((summary.bonuses ?? 0) > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'earning', category: 'bonus', name: 'مكافآت', amount: summary.bonuses ?? 0, is_taxable: true, branch_id: emp.branch_id } as any] : []),
+            ...((summary.loan_deduction ?? 0) > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'deduction', category: 'loan', name: 'قرض', amount: -(summary.loan_deduction ?? 0), is_taxable: false, branch_id: emp.branch_id } as any] : []),
+            ...((summary.tax_deduction ?? 0) > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'deduction', category: 'tax', name: 'ضريبة', amount: -(summary.tax_deduction ?? 0), is_taxable: false, branch_id: emp.branch_id } as any] : []),
+            ...((summary.social_insurance ?? 0) > 0 ? [{ run_id: runId, employee_id: emp.id, line_type: 'deduction', category: 'insurance', name: 'تأمينات اجتماعية', amount: -(summary.social_insurance ?? 0), is_taxable: false, branch_id: emp.branch_id } as any] : []),
           ])
         }
 
-        totalEarnings += summary.gross_pay
-        totalDeductions += summary.total_deductions
-        totalEmployerContribs += summary.employer_contributions
-        netPay += summary.net_pay
+        totalEarnings += summary.gross_pay ?? 0
+        totalDeductions += summary.total_deductions ?? 0
+        totalEmployerContribs += summary.employer_contributions ?? 0
+        netPay += summary.net_pay ?? 0
       }
 
       const updated = await this.runRepo.update(runId, {
@@ -127,6 +127,9 @@ export class PayrollEngine {
   }
 
   private async calculateEmployeePayroll(run: PayrollRunEntity, employeeId: string): Promise<Partial<PayrollSummaryEntity>> {
+    const cycle = await this.cycleRepo.findById(run.cycle_id)
+    if (!cycle) return { employee_id: employeeId, gross_pay: 0, total_deductions: 0, net_pay: 0, employer_contributions: 0 }
+
     const contract = await this.contractRepo.findActiveByEmployee(employeeId)
     if (!contract) return { employee_id: employeeId, gross_pay: 0, total_deductions: 0, net_pay: 0, employer_contributions: 0 }
 
@@ -137,7 +140,7 @@ export class PayrollEngine {
     const colAllowance = Number(contract.cost_of_living_allowance) || 0
     const otherAllowances = Number(contract.other_allowances) || 0
 
-    const attendanceLogs = await this.attLogRepo.findRange(this.companyId, run.cycle.period_start, run.cycle.period_end, employeeId)
+    const attendanceLogs = await this.attLogRepo.findRange(this.companyId, cycle.period_start, cycle.period_end, employeeId)
     const absentDays = attendanceLogs.filter(l => l.status === 'absent').length
     const totalWorkingDays = 30
     const dailyRate = totalWorkingDays > 0 ? basicSalary / totalWorkingDays : 0

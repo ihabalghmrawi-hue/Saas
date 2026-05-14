@@ -58,6 +58,8 @@ export interface AuditTrailEntry {
   actor: string
   timestamp: number
   details: string
+  entityType?: string
+  entityId?: string
   type: 'create' | 'update' | 'approve' | 'reject' | 'post' | 'validate' | 'system'
 }
 

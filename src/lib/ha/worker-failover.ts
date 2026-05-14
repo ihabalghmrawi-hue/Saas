@@ -42,7 +42,7 @@ const DEFAULT_CONFIG: FailoverConfig = {
 
 export function registerWorker(worker: WorkerInstance): void {
   instances.set(worker.id, worker)
-  logger.info(`Worker registered: ${worker.name}`, { workerId: worker.id, queues: worker.assignedQueues })
+  logger.info(`Worker registered: ${worker.name}`, { data: { workerId: worker.id, queues: worker.assignedQueues } })
 }
 
 export function heartbeat(workerId: string): void {
@@ -60,7 +60,7 @@ export function markFailed(workerId: string, reason: string): void {
   if (!worker) return
 
   worker.status = 'failed'
-  logger.error(`Worker marked as failed: ${worker.name}`, undefined, { workerId, reason })
+  logger.error(`Worker marked as failed: ${worker.name}`, undefined, { data: { workerId, reason } })
   incrementCounter('ha_failovers_total', { worker: worker.name, status: 'failed' })
 }
 
@@ -77,9 +77,7 @@ export function detectFailedWorkers(config: FailoverConfig = DEFAULT_CONFIG): Wo
     if (worker.status === 'active' && now - worker.lastHeartbeat > config.heartbeatTimeout) {
       worker.status = 'failed'
       logger.warn(`Worker heartbeat timeout: ${worker.name}`, {
-        workerId: worker.id,
-        lastHeartbeat: new Date(worker.lastHeartbeat).toISOString(),
-        timeout: config.heartbeatTimeout,
+        data: { workerId: worker.id, lastHeartbeat: new Date(worker.lastHeartbeat).toISOString(), timeout: config.heartbeatTimeout },
       })
       incrementCounter('ha_heartbeat_timeouts_total', { worker: worker.name })
       failed.push(worker)
@@ -102,7 +100,7 @@ export async function executeFailover(
   )
 
   if (available.length === 0) {
-    logger.error(`No available workers for failover from ${failedWorker.name}`, undefined, { failedWorkerId: failedWorker.id })
+    logger.error(`No available workers for failover from ${failedWorker.name}`, undefined, { data: { failedWorkerId: failedWorker.id } })
     return { success: false, assignedTo: null }
   }
 
@@ -122,9 +120,7 @@ export async function executeFailover(
         success: true,
       })
       logger.info(`Failover successful: ${failedWorker.name} -> ${target.name}`, {
-        from: failedWorker.id,
-        to: target.id,
-        queues: failedWorker.assignedQueues,
+        data: { from: failedWorker.id, to: target.id, queues: failedWorker.assignedQueues },
       })
       incrementCounter('ha_failovers_total', { worker: target.name, status: 'success' })
       return { success: true, assignedTo: target.id }
@@ -141,8 +137,7 @@ export async function executeFailover(
     return { success: false, assignedTo: null }
   } catch (error) {
     logger.error(`Failover reassignment failed`, error instanceof Error ? error : undefined, {
-      from: failedWorker.id,
-      to: target.id,
+      data: { from: failedWorker.id, to: target.id },
     })
     return { success: false, assignedTo: null }
   }
@@ -163,7 +158,7 @@ export async function recoverWorker(
     if (recovered) {
       worker.status = 'active'
       worker.lastHeartbeat = Date.now()
-      logger.info(`Worker recovered: ${worker.name}`, { workerId })
+      logger.info(`Worker recovered: ${worker.name}`, { data: { workerId } })
       incrementCounter('ha_worker_recoveries_total', { worker: worker.name })
       return true
     }
@@ -171,7 +166,7 @@ export async function recoverWorker(
     return false
   } catch (error) {
     worker.status = 'failed'
-    logger.error(`Worker recovery failed: ${worker.name}`, error instanceof Error ? error : undefined, { workerId })
+    logger.error(`Worker recovery failed: ${worker.name}`, error instanceof Error ? error : undefined, { data: { workerId } })
     return false
   }
 }

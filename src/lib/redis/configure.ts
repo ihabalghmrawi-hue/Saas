@@ -233,7 +233,7 @@ export function useRedisModuleStores(
           return data ? JSON.parse(data) : undefined
         }
         if (prop === 'length') return { valueOf: async () => client.llen(redisKey) }
-        if (prop === 'filter') return async (fn: Function) => {
+        if (prop === 'filter') return async (fn: (value: unknown, index: number, array: unknown[]) => unknown) => {
           const items = await client.lrange(redisKey, 0, -1)
           return items.map((i) => JSON.parse(i)).filter(fn)
         }

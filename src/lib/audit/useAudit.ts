@@ -62,11 +62,15 @@ export function useAuditedAction() {
   ): Promise<{ result: T | null; error?: string }> => {
     try {
       const result = await action()
-      await auditRepo.log({
-        ...auditEntry,
+      await (auditRepo.log as (entry: Record<string, unknown>) => Promise<AuditTrailEntry | null>)({
+        action: auditEntry.action,
+        actor: auditEntry.actor,
+        entityType: auditEntry.entityType,
+        entityId: auditEntry.entityId,
+        details: auditEntry.details,
         type: auditEntry.type ?? 'update',
         timestamp: Date.now(),
-      } as AuditTrailEntry)
+      })
       return { result }
     } catch (e) {
       return { result: null, error: (e as Error).message }

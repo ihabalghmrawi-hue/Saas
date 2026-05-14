@@ -65,18 +65,16 @@ export async function validateRestore(
 
     if (hasFailed) {
       logger.error('Restore validation failed', undefined, {
-        restoreId,
-        backupId,
-        failedChecks: checks.filter(c => c.status === 'failed').map(c => c.name),
+        data: { restoreId, backupId, failedChecks: checks.filter(c => c.status === 'failed').map(c => c.name) },
       })
     } else {
-      logger.info('Restore validation passed', { restoreId, backupId, totalChecks: checks.length })
+      logger.info('Restore validation passed', { data: { restoreId, backupId, totalChecks: checks.length } })
     }
   } catch (error) {
     validation.status = 'failed'
     validation.completedAt = new Date().toISOString()
     validation.summary = `Restore validation error: ${error instanceof Error ? error.message : 'Unknown error'}`
-    logger.error('Restore validation threw exception', error instanceof Error ? error : undefined, { restoreId, backupId })
+    logger.error('Restore validation threw exception', error instanceof Error ? error : undefined, { data: { restoreId, backupId } })
   }
 
   return validation

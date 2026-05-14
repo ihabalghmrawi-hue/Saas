@@ -59,19 +59,19 @@ export function assessReadiness(): ReadinessReport {
   if (overall < 80) {
     recommendations.push('تحسين درجة الأمان إلى أكثر من 80%')
   }
-  if (categories.find(c => c.category === 'الأمان')?.score < 80) {
+  if ((categories.find(c => c.category === 'الأمان')?.score ?? 0) < 80) {
     recommendations.push('مراجعة إعدادات الأمان وتحسينها')
   }
-  if (categories.find(c => c.category === 'الأداء')?.score < 70) {
+  if ((categories.find(c => c.category === 'الأداء')?.score ?? 0) < 70) {
     recommendations.push('تحسين أداء النظام وتسريع زمن الاستجابة')
   }
-  if (categories.find(c => c.category === 'الموثوقية')?.score < 70) {
+  if ((categories.find(c => c.category === 'الموثوقية')?.score ?? 0) < 70) {
     recommendations.push('تعزيز موثوقية النظام وإضافة آليات الاسترجاع')
   }
-  if (categories.find(c => c.category === 'التشغيل')?.score < 60) {
+  if ((categories.find(c => c.category === 'التشغيل')?.score ?? 0) < 60) {
     recommendations.push('تجهيز فرق التشغيل بأدلة الإجراءات اللازمة')
   }
-  if (categories.find(c => c.category === 'تجربة المستخدم')?.score < 70) {
+  if ((categories.find(c => c.category === 'تجربة المستخدم')?.score ?? 0) < 70) {
     recommendations.push('تحسين تجربة المستخدم ومعالجة حالات الخطأ')
   }
   if (categories.length === 5 && categories.every(c => c.score >= 80)) {

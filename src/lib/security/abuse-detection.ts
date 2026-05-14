@@ -13,6 +13,7 @@ export interface RateLimitState {
 }
 
 export interface AbuseEvent {
+  id: string
   type: 'rate_limit_exceeded' | 'suspicious_pattern' | 'api_abuse' | 'scraping' | 'credential_stuffing'
   key: string
   ip: string
@@ -116,8 +117,8 @@ export function recordAbuseEvent(event: Omit<AbuseEvent, 'id'>): AbuseEvent {
     blockedIPs.set(event.ip, Date.now() + ESCALATION_MATRIX[event.severity][0].duration)
   }
 
-  logger.warn(`Abuse event: [${event.severity}] ${event.type} from ${event.ip}`, undefined, {
-    event: full,
+  logger.warn(`Abuse event: [${event.severity}] ${event.type} from ${event.ip}`, {
+    data: { event: full },
   })
 
   return full

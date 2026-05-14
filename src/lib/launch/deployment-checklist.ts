@@ -75,7 +75,7 @@ async function checkRateLimiting(): Promise<boolean> {
 
 async function checkAuditLogging(): Promise<boolean> {
   try {
-    const audit = await import('@/lib/audit.ts')
+    const audit = await import('@/lib/audit')
     return typeof audit !== 'undefined'
   } catch {
     return false
@@ -107,7 +107,7 @@ async function checkConnectionPool(): Promise<boolean> {
 async function checkCacheConfigured(): Promise<boolean> {
   try {
     const cache = await import('@/lib/redis/cache')
-    return typeof cache.getCacheMetrics === 'function'
+    return typeof cache.DistributedCache === 'function'
   } catch {
     return false
   }
@@ -198,7 +198,7 @@ async function checkPasswordPolicy(): Promise<boolean> {
 async function checkSessionTimeout(): Promise<boolean> {
   try {
     const session = await import('@/lib/session')
-    return typeof session.getSession === 'function'
+    return typeof session.verifySession === 'function'
   } catch {
     return false
   }
@@ -207,7 +207,7 @@ async function checkSessionTimeout(): Promise<boolean> {
 async function checkStripeConfigured(): Promise<boolean> {
   try {
     const sub = await import('@/lib/subscription')
-    return typeof sub.getSubscription === 'function'
+    return typeof sub.computeLifecycle === 'function'
   } catch {
     return process?.env?.STRIPE_SECRET_KEY ? true : false
   }

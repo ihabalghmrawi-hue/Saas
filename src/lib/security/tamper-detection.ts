@@ -115,10 +115,7 @@ export function verifyIntegrity(entityType: string, entityId: string): TamperEve
       record.verified = false
       incrementCounter('tamper_events_detected_total', { entityType, severity: event.severity })
       logger.error(`Tamper detected: ${entityType}:${entityId} at record ${i}`, undefined, {
-        eventId: event.id,
-        entityType,
-        entityId,
-        severity: event.severity,
+        data: { eventId: event.id, entityType, entityId, severity: event.severity },
       })
     } else {
       record.verified = true

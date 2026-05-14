@@ -84,7 +84,7 @@ export function createRedisHealthChecker(getRedisHealth: () => Promise<boolean>)
   }
 }
 
-export function createQueueHealthChecker(getQueueDepth: (name: string) => Promise<number>): HealthChecker[] {
+export function createQueueHealthChecker(getQueueDepth: (name: string) => Promise<number>): Array<{ name: string; checker: HealthChecker }> {
   const queues = ['accounting', 'reconciliation', 'recurring', 'backup', 'webhook', 'notifications']
   return queues.map((queue) => ({
     name: `queue_${queue}`,

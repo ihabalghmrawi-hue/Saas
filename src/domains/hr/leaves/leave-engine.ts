@@ -32,7 +32,7 @@ export class LeaveEngine {
     if (days < leaveType.min_days) return { ok: false, error: `الحد الأدنى ${leaveType.min_days} أيام`, code: 'MIN_DAYS' }
     if (days > leaveType.max_days_per_request) return { ok: false, error: `الحد الأقصى ${leaveType.max_days_per_request} أيام لكل طلب`, code: 'MAX_DAYS' }
 
-    if (!leaveType.is_unpaid) {
+    if (!leaveType.is_paid) {
       const year = new Date(input.start_date).getFullYear()
       const balance = await this.balanceRepo.findByEmployee(input.employee_id, input.leave_type_id, year)
       const remaining = balance ? balance.remaining_days - balance.pending_days : 0

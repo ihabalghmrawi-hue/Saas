@@ -151,7 +151,7 @@ export class DistributedSessionStore {
     const count = await this.client.scard(userSessionsKey)
     if (count <= MAX_CONCURRENT_SESSIONS) return
 
-    const sessionIds = await this.client.sort(userSessionsKey, 'BY', 'nosort', 'GET', `${SESSION_PREFIX}*->createdAt`, 'ALPHA')
+    const sessionIds = (await this.client.sort(userSessionsKey, 'BY', 'nosort', 'GET', `${SESSION_PREFIX}*->createdAt`, 'ALPHA')) as string[]
     const toRemove = count - MAX_CONCURRENT_SESSIONS
     for (let i = 0; i < toRemove && i < sessionIds.length; i++) {
       const id = sessionIds[i]

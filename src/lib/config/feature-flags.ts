@@ -43,9 +43,9 @@ function getTenantOverride(key: string, tenantId: string): boolean | undefined {
 
 function setTenantOverrideStore(key: string, tenantId: string, enabled: boolean): void {
   if (!tenantOverrideStore) return
-  let overrides = tenantOverrideStore.get(key)
+  let overrides: Map<string, boolean> | undefined = tenantOverrideStore.get(key)
   if (!overrides) {
-    overrides = new Map() as any
+    overrides = new Map()
     tenantOverrideStore.set(key, overrides)
   }
   if (typeof (overrides as any).set === 'function') (overrides as any).set(tenantId, enabled)
@@ -62,9 +62,9 @@ function getEnvOverride(key: string, env: string): boolean | undefined {
 
 function setEnvOverrideStore(key: string, env: string, enabled: boolean): void {
   if (!envOverrideStore) return
-  let overrides = envOverrideStore.get(key)
+  let overrides: Map<string, boolean> | undefined = envOverrideStore.get(key)
   if (!overrides) {
-    overrides = new Map() as any
+    overrides = new Map()
     envOverrideStore.set(key, overrides)
   }
   if (typeof (overrides as any).set === 'function') (overrides as any).set(env, enabled)

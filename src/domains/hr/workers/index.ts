@@ -33,8 +33,8 @@ export class LeaveWorker {
   }
 
   async bulkAccrueAnnualLeave(year: number, entitledDays: number) {
-    const { default: repo } = await import('../repositories/employee.repository')
-    const empRepo = new repo.EmployeeRepository(this.db, this.companyId)
+    const { EmployeeRepository: EmpRepo } = await import('../repositories/employee.repository')
+    const empRepo = new EmpRepo(this.db, this.companyId)
     const engine = new LeaveEngine(this.db, this.companyId)
     const result = await empRepo.findPaged({ status: 'active', limit: 5000 })
     for (const emp of result.data) {

@@ -73,7 +73,7 @@ export function placeLegalHold(entityType: string, entityIds: string[], reason: 
     active: true,
   }
   legalHolds.push(hold)
-  logger.warn(`Legal hold placed on ${entityType}:${entityIds.join(',')} — ${reason}`, undefined, { hold })
+  logger.warn(`Legal hold placed on ${entityType}:${entityIds.join(',')} — ${reason}`, { data: { hold } })
   return hold
 }
 

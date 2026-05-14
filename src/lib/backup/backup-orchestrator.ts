@@ -92,12 +92,11 @@ export async function executeBackup(
     job.storagePath = result.storagePath
     job.checksum = result.checksum
     recordBackupOperation('backup', 'success')
-    logger.info(`Backup completed: ${job.id}`, { jobId: job.id, size: result.size, type })
+    logger.info(`Backup completed: ${job.id}`, { data: { jobId: job.id, size: result.size, type } })
   } catch (error) {
     job.status = 'failed'
     job.error = error instanceof Error ? error.message : 'Unknown backup error'
-    recordBackupOperation('backup', 'failed')
-    logger.error(`Backup failed: ${job.id}`, error instanceof Error ? error : undefined, { jobId: job.id })
+    logger.error(`Backup failed: ${job.id}`, error instanceof Error ? error : undefined, { data: { jobId: job.id } })
   }
 
   return job

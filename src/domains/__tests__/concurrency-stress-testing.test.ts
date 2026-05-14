@@ -145,6 +145,13 @@ describe('Concurrency & Stress Testing', () => {
         payment_date: '2025-07-01', is_closed: false,
       } as any)
 
+      vi.spyOn(PayrollCycleRepository.prototype, 'findById').mockResolvedValue({
+        id: cycleId, company_id: companyId, name: 'June 2025',
+        cycle_type: 'monthly', year: 2025, month: 6,
+        period_start: '2025-06-01', period_end: '2025-06-30',
+        payment_date: '2025-07-01', is_closed: false,
+      } as any)
+
       const processedRuns: string[] = []
       vi.spyOn(PayrollRunRepository.prototype, 'findById').mockImplementation(async (id: string) => ({
         id, company_id: companyId, cycle_id: cycleId,

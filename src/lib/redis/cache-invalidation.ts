@@ -37,7 +37,9 @@ export class CacheInvalidationBus {
 
     const subClient = this.client.duplicate ? this.client.duplicate() : this.client
     try {
-      await subClient.subscribe(this.channel, (message: string) => {
+      await subClient.subscribe(this.channel)
+      subClient.on('message', (channel: string, message: string) => {
+        if (channel !== this.channel) return
         try {
           const event: CacheInvalidationEvent = JSON.parse(message)
           this.dispatchToListeners(event)

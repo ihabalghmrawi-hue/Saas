@@ -73,7 +73,7 @@ export function createSession(
   if (existing.length >= policy.maxConcurrentSessions) {
     const oldest = existing.sort((a, b) => a.createdAt - b.createdAt)[0]
     activeSessions.delete(oldest.sessionId)
-    logger.warn(`Session evicted: ${oldest.sessionId} — max concurrent sessions reached`, undefined, { userId, maxSessions: policy.maxConcurrentSessions })
+    logger.warn(`Session evicted: ${oldest.sessionId} — max concurrent sessions reached`, { data: { userId, maxSessions: policy.maxConcurrentSessions } })
   }
 
   const session: SessionInfo = {
